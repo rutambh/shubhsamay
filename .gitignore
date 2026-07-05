@@ -61,3 +61,6 @@ server.log
 
 # Process ID files
 *.pid
+
+# Secrets (never committed)
+docs/cicd/secrets/
