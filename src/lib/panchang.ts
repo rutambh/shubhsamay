@@ -98,6 +98,45 @@ export function getTithi(date: Date): TithiInfo {
   };
 }
 
+/**
+ * Calculates start and end Date for the current Tithi around `date`.
+ * Uses binary search over lunar-solar longitude diff boundaries.
+ */
+export function getTithiRange(date: Date): { start: Date; end: Date } {
+  const currentIndex = getTithi(date).index;
+  const nowMs = date.getTime();
+  const spanMs = 30 * 3600 * 1000; // 30 hours search window
+
+  // Find start: boundary where tithi index transitioned into currentIndex
+  let low = nowMs - spanMs;
+  let high = nowMs;
+  while (high - low > 1000) {
+    const mid = Math.floor((low + high) / 2);
+    if (getTithi(new Date(mid)).index === currentIndex) {
+      high = mid;
+    } else {
+      low = mid;
+    }
+  }
+  const start = new Date(high);
+
+  // Find end: boundary where tithi index transitions out of currentIndex
+  low = nowMs;
+  high = nowMs + spanMs;
+  while (high - low > 1000) {
+    const mid = Math.floor((low + high) / 2);
+    if (getTithi(new Date(mid)).index === currentIndex) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+  const end = new Date(high);
+
+  return { start, end };
+}
+
+
 // ============ NAKSHATRA ============
 // 27 nakshatras, each 13°20' (13.333°)
 export const NAKSHATRA_NAMES_EN = [
@@ -233,18 +272,24 @@ export function getKarana(date: Date): KaranaInfo {
 }
 
 // ============ SUNRISE / SUNSET ============
+import { wallClockToUtc } from "./time-utils";
+
 export interface LatLng {
   lat: number;
   lng: number;
   tzOffsetHours: number;
+  tz?: string;
 }
 
 /**
  * Compute local midnight (00:00 in user's tz) as a UTC Date.
- * tzOffsetHours = hours ahead of UTC (e.g., 5.5 for IST).
+ * Supports both IANA timezone strings and raw offset hours.
  * Returns a Date whose underlying ms is the UTC instant of local midnight.
  */
-export function localMidnightUTC(date: Date, tzOffsetHours: number): Date {
+export function localMidnightUTC(date: Date, tzOffsetHours: number, tz?: string): Date {
+  if (tz) {
+    return wallClockToUtc(date, 0, 0, tz);
+  }
   // Shift to local, read Y/M/D, then construct UTC midnight and shift back
   const localMs = date.getTime() + tzOffsetHours * 3600000;
   const local = new Date(localMs);
@@ -263,7 +308,7 @@ export function localMidnightUTC(date: Date, tzOffsetHours: number): Date {
  * Returns a Date in raw UTC (caller formats using tzOffset).
  */
 export function getSunrise(date: Date, loc: LatLng): Date | null {
-  const midnightUT = localMidnightUTC(date, loc.tzOffsetHours);
+  const midnightUT = localMidnightUTC(date, loc.tzOffsetHours, loc.tz);
   const observer = new Observer(loc.lat, loc.lng, 0);
   try {
     // direction = +1 means altitude increasing (rising); altitude = -0.833° for true sunrise
@@ -280,7 +325,7 @@ export function getSunrise(date: Date, loc: LatLng): Date | null {
  * Returns a Date in raw UTC (caller formats using tzOffset).
  */
 export function getSunset(date: Date, loc: LatLng): Date | null {
-  const midnightUT = localMidnightUTC(date, loc.tzOffsetHours);
+  const midnightUT = localMidnightUTC(date, loc.tzOffsetHours, loc.tz);
   // Start search from local noon (midnight + 12h) to find evening sunset
   const noonUT = new Date(midnightUT.getTime() + 12 * 3600000);
   const observer = new Observer(loc.lat, loc.lng, 0);
@@ -291,6 +336,40 @@ export function getSunset(date: Date, loc: LatLng): Date | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Hindu Pre-Sunrise Boundary Helper:
+ * If target time is between 12:00 AM midnight and today's Sunrise,
+ * astronomically the Panchang elements (Tithi, Vara, Choghadiya, Hora)
+ * belong to the PREVIOUS civil date (effectiveDate = date - 1 day).
+ */
+export function getEffectivePanchangDate(date: Date, loc: LatLng): {
+  effectiveDate: Date;
+  sunriseToday: Date;
+  sunsetToday: Date;
+  sunriseTomorrow: Date;
+} {
+  const sunriseToday = getSunrise(date, loc) || new Date(date.getTime() + 6 * 3600000);
+  const sunsetToday = getSunset(date, loc) || new Date(date.getTime() + 18 * 3600000);
+
+  let targetDate = date;
+  if (date.getTime() < sunriseToday.getTime()) {
+    // Current instant is pre-sunrise -> shift reference date to previous day
+    targetDate = new Date(date.getTime() - 24 * 3600000);
+  }
+
+  const effSunriseToday = getSunrise(targetDate, loc) || sunriseToday;
+  const effSunsetToday = getSunset(targetDate, loc) || sunsetToday;
+  const nextDay = new Date(targetDate.getTime() + 24 * 3600000);
+  const effSunriseTomorrow = getSunrise(nextDay, loc) || new Date(effSunriseToday.getTime() + 24 * 3600000);
+
+  return {
+    effectiveDate: targetDate,
+    sunriseToday: effSunriseToday,
+    sunsetToday: effSunsetToday,
+    sunriseTomorrow: effSunriseTomorrow,
+  };
 }
 
 // ============ WEEKDAY / VARA ============

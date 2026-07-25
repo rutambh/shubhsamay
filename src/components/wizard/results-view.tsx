@@ -4,7 +4,7 @@ import { useLang } from "@/hooks/use-lang";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Calendar,
   Clock,
@@ -12,8 +12,7 @@ import {
   Sparkles,
   RotateCcw,
   AlertCircle,
-  TrendingUp,
-  Plus,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Tier, SlotClassification, MethodId } from "@/lib/events";
@@ -48,24 +47,22 @@ interface Props {
   highly: TimingResult[];
   auspicious: TimingResult[];
   good: TimingResult[];
-  suggestion: Suggestion | null;
+  bestRecommendation?: TimingResult | null;
   loading: boolean;
   error: string | null;
   eventName?: string;
   onReset: () => void;
-  onAddSuggestedDate: (date: Date) => void;
 }
 
 export function ResultsView({
   highly,
   auspicious,
   good,
-  suggestion,
+  bestRecommendation,
   loading,
   error,
   eventName,
   onReset,
-  onAddSuggestedDate,
 }: Props) {
   const { lang, t } = useLang();
   // Only ONE tile selected at a time (radio-style). Default: highest tier with slots.
@@ -75,6 +72,14 @@ export function ResultsView({
     if (good.length > 0) return "good";
     return null;
   });
+
+  // Keep selectedTier synced when results props update
+  useEffect(() => {
+    if (highly.length > 0) setSelectedTier("highly");
+    else if (auspicious.length > 0) setSelectedTier("auspicious");
+    else if (good.length > 0) setSelectedTier("good");
+    else setSelectedTier(null);
+  }, [highly, auspicious, good]);
 
   if (loading) {
     return (
@@ -134,59 +139,96 @@ export function ResultsView({
     selectedTier === "auspicious" ? auspicious :
     selectedTier === "good" ? good : [];
 
+  // Single #1 best overall timing slot calculated across ALL methods (strictly highly or auspicious)
+  const topSlot = bestRecommendation;
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-3.5">
       {eventName && (
-        <p className="text-sm text-muted-foreground text-center">
+        <p className="text-xs text-muted-foreground text-center">
           {lang === "gu" ? "પ્રસંગ: " : "Event: "}
           <span className="font-semibold text-foreground">{eventName}</span>
         </p>
       )}
 
-      {/* Suggestion banner */}
-      {suggestion && (
-        <Card className="p-4 border-primary/40 bg-gradient-to-br from-accent/40 to-card">
-          <div className="flex items-start gap-3">
-            <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-              <TrendingUp className="h-4 w-4 text-primary" />
+      {/* Compact Best Recommended Timing Card */}
+      {topSlot && (
+        <Card className="p-2.5 sm:p-3 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-primary/5 to-card shadow-2xs space-y-1.5">
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse shrink-0" />
+              <h3 className="font-bold text-xs sm:text-sm text-foreground">
+                {lang === "gu" ? "ઉત્તમ સમય મુહૂર્ત (શ્રેષ્ઠ પસંદગી)" : "Best Recommended Timing"}
+              </h3>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-foreground">
-                {t("suggestionTitle")}
-              </p>
-              <p className="text-xs text-muted-foreground mb-2">
-                {t("suggestionBody")}
-              </p>
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className="bg-primary text-primary-foreground gap-1">
-                    <Star className="h-3 w-3 fill-current" />
-                    {lang === "gu" ? suggestion.label_gu : suggestion.label_en}
-                  </Badge>
-                  <span className="text-sm font-medium text-foreground">
-                    {formatTzDate(suggestion.start, TZ_OFFSET)} ·{" "}
-                    {formatTzTime(suggestion.start, TZ_OFFSET)} –{" "}
-                    {formatTzTime(suggestion.end, TZ_OFFSET)}
-                  </span>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1 h-8"
-                  onClick={() => onAddSuggestedDate(new Date(suggestion.date))}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  {t("addSuggestedDate")}
-                </Button>
-              </div>
-              {suggestion.favorableVaras_en.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  {lang === "gu"
-                    ? `આ પ્રસંગ માટે શ્રેષ્ઠ દિવસ: ${suggestion.favorableVaras_gu.join(", ")}`
-                    : `Best days for this event: ${suggestion.favorableVaras_en.join(", ")}`}
-                </p>
-              )}
+            <Badge className="bg-amber-500 text-amber-950 text-[10px] py-0 px-2 font-bold gap-0.5 shrink-0">
+              <Star className="h-2.5 w-2.5 fill-current" />
+              {lang === "gu"
+                ? { highly: "અત્યંત શુભ", auspicious: "શુભ", good: "સારો", avoid: "ટાળો" }[topSlot.tier]
+                : { highly: "Highly Auspicious", auspicious: "Auspicious", good: "Good", avoid: "Avoid" }[topSlot.tier]}
+            </Badge>
+          </div>
+
+          <div className="p-3 rounded-lg bg-background/80 backdrop-blur border border-primary/20 space-y-1">
+            {/* Day, Date */}
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground">
+              <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>{formatTzDate(topSlot.start, TZ_OFFSET)}</span>
             </div>
+            {/* Time in new line */}
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-primary shrink-0" />
+              <span className="font-black text-base sm:text-lg text-foreground tracking-tight">
+                {formatTzTime(topSlot.start, TZ_OFFSET)} – {formatTzTime(topSlot.end, TZ_OFFSET)}
+              </span>
+            </div>
+          </div>
+
+          {/* Classification chips color-coded by tier (matching results grid) */}
+          <div className="flex flex-wrap gap-1 pt-0.5">
+            <ClassChip
+              label={lang === "gu" ? "ચોઘડિયા" : "Choghadiya"}
+              value={topSlot.classification.choghadiya ? (lang === "gu" ? topSlot.classification.choghadiya.name_gu : topSlot.classification.choghadiya.name_en) : null}
+              tier={topSlot.classification.choghadiya?.tier}
+              lang={lang}
+            />
+            <ClassChip
+              label={lang === "gu" ? "હોરા" : "Hora"}
+              value={topSlot.classification.hora ? (lang === "gu" ? topSlot.classification.hora.name_gu : topSlot.classification.hora.name_en) : null}
+              tier={topSlot.classification.hora?.tier}
+              lang={lang}
+            />
+            <ClassChip
+              label={lang === "gu" ? "તિથિ" : "Tithi"}
+              value={topSlot.classification.tithi ? (lang === "gu" ? topSlot.classification.tithi.name_gu : topSlot.classification.tithi.name_en) : null}
+              tier={topSlot.classification.tithi?.tier}
+              lang={lang}
+            />
+            <ClassChip
+              label={lang === "gu" ? "નક્ષત્ર" : "Nakshatra"}
+              value={topSlot.classification.nakshatra ? (lang === "gu" ? topSlot.classification.nakshatra.name_gu : topSlot.classification.nakshatra.name_en) : null}
+              tier={topSlot.classification.nakshatra?.tier}
+              lang={lang}
+            />
+            <ClassChip
+              label={lang === "gu" ? "યોગ" : "Yoga"}
+              value={topSlot.classification.yoga ? (lang === "gu" ? topSlot.classification.yoga.name_gu : topSlot.classification.yoga.name_en) : null}
+              tier={topSlot.classification.yoga?.tier}
+              lang={lang}
+            />
+            <ClassChip
+              label={lang === "gu" ? "વાર" : "Vara"}
+              value={topSlot.classification.vara ? (lang === "gu" ? topSlot.classification.vara.name_gu : topSlot.classification.vara.name_en) : null}
+              tier={topSlot.classification.vara?.tier}
+              lang={lang}
+            />
+            <ClassChip
+              label={lang === "gu" ? "મુહૂર્ત" : "Muhurat"}
+              value={topSlot.classification.muhurat ? (lang === "gu" ? topSlot.classification.muhurat.name_gu : topSlot.classification.muhurat.name_en) : null}
+              tier={topSlot.classification.muhurat?.tier}
+              lang={lang}
+              inactive={topSlot.classification.muhurat ? !topSlot.classification.muhurat.active : undefined}
+            />
           </div>
         </Card>
       )}
@@ -221,7 +263,7 @@ export function ResultsView({
         <ResultGroup slots={displaySlots} lang={lang} />
       )}
 
-      <div className="flex justify-center pt-2">
+      <div className="flex justify-center pt-1">
         <Button onClick={onReset} variant="outline" className="gap-2">
           <RotateCcw className="h-4 w-4" />
           {t("startOver")}
@@ -279,18 +321,20 @@ function Tile({
       onClick={onClick}
       disabled={count === 0}
       className={cn(
-        "rounded-xl border p-2.5 transition-all text-center flex flex-col items-center gap-0.5",
+        "rounded-xl border p-2 transition-all text-center flex flex-col items-center justify-center min-h-[68px] h-full gap-0.5",
         count === 0 && "opacity-35 cursor-not-allowed",
         selected ? colors[tier].selected : colors[tier].base,
         count > 0 && !selected && "hover:shadow-sm hover:-translate-y-0.5 cursor-pointer"
       )}
     >
-      {/* Tier label ABOVE count */}
-      <span className="text-[10px] font-semibold uppercase tracking-wide leading-tight">
-        {lang === "gu" ? labels[tier].gu : labels[tier].en}
-      </span>
+      {/* Tier label (centered vertically in fixed height box so 1-line and 2-line labels align) */}
+      <div className="flex items-center justify-center min-h-[26px] text-center w-full">
+        <span className="text-[10px] font-semibold uppercase tracking-wide leading-tight text-center">
+          {lang === "gu" ? labels[tier].gu : labels[tier].en}
+        </span>
+      </div>
       {/* Count (smaller) */}
-      <span className={cn("text-xl font-bold leading-none", colors[tier].count)}>
+      <span className={cn("text-lg font-bold leading-none", colors[tier].count)}>
         {count}
       </span>
     </button>
@@ -313,33 +357,33 @@ function ResultGroup({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {Array.from(grouped.entries()).map(([day, daySlots]) => (
         <div key={day} className="space-y-2">
-          {/* Larger, colored date heading */}
-          <div className="flex items-center gap-2 py-1.5 px-1 sticky top-0 bg-background/85 backdrop-blur z-10">
-            <Calendar className="h-4 w-4 text-primary shrink-0" />
-            <h4 className="text-base font-bold text-primary">
+          {/* Colored date heading */}
+          <div className="flex items-center gap-2 py-1 px-1 sticky top-0 bg-background/85 backdrop-blur z-10">
+            <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+            <h4 className="text-sm font-bold text-primary">
               {formatTzDate(daySlots[0].start, TZ_OFFSET)}
             </h4>
           </div>
           {daySlots.map((s, i) => (
             <Card
               key={i}
-              className="p-3 transition-all fade-up border-border bg-card/80"
-              style={{ animationDelay: `${i * 40}ms` }}
+              className="p-2.5 transition-all fade-up border-border bg-card/80 space-y-1"
+              style={{ animationDelay: `${i * 30}ms` }}
             >
-              {/* Time */}
-              <div className="flex items-center gap-2 mb-2">
+              {/* Time — reduced vertical margin to pills */}
+              <div className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-foreground text-sm">
+                <span className="font-extrabold text-sm sm:text-base text-foreground tracking-tight">
                   {formatTzTime(s.start, TZ_OFFSET)} –{" "}
                   {formatTzTime(s.end, TZ_OFFSET)}
                 </span>
               </div>
 
               {/* Classification chips: "Category: Value (Tier)" with value highlighted */}
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1">
                 <ClassChip
                   label={lang === "gu" ? "ચોઘડિયા" : "Choghadiya"}
                   value={s.classification.choghadiya ? (lang === "gu" ? s.classification.choghadiya.name_gu : s.classification.choghadiya.name_en) : null}
@@ -406,17 +450,7 @@ function ClassChip({
   lang: "en" | "gu";
   inactive?: boolean;
 }) {
-  if (!value || !tier) return null;
-
-  // Inactive (e.g. Muhurat "None") — show in gray, no tier label
-  if (inactive) {
-    return (
-      <span className="inline-flex items-baseline gap-1 text-[11px] px-1.5 py-0.5 rounded-full bg-muted/40 text-muted-foreground/60">
-        <span>{label}:</span>
-        <span>—</span>
-      </span>
-    );
-  }
+  if (!value || !tier || inactive) return null;
 
   const tierLabel =
     lang === "gu"
@@ -434,10 +468,10 @@ function ClassChip({
       : "text-red-600 dark:text-red-400 font-semibold";
 
   return (
-    <span className="inline-flex items-baseline gap-1 text-[11px] px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground">
-      <span>{label}:</span>
+    <span className="inline-flex items-baseline gap-1 text-[10px] px-2 py-0.5 rounded-full bg-secondary/60 text-secondary-foreground border border-border/40">
+      <span className="text-muted-foreground font-medium">{label}:</span>
       <span className={valueColor}>{value}</span>
-      <span className="opacity-60">({tierLabel})</span>
+      <span className="text-[9px] opacity-75 font-normal">({tierLabel})</span>
     </span>
   );
 }

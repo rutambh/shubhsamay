@@ -1,139 +1,125 @@
 "use client";
 
 import { useLang } from "@/hooks/use-lang";
-import { CITIES, type CityDef } from "@/lib/events";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { CITIES, findNearestCity, type CityDef } from "@/lib/events";
+import { getSystemTimezone, getCityNameFromTimezone } from "@/lib/time-utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Search, Check } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { MapPin, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 interface Props {
   value: CityDef | null;
   onChange: (c: CityDef) => void;
+  onGpsError?: () => void;
+  className?: string;
 }
 
 const DEFAULT_CITY: CityDef = CITIES[0]; // Ahmedabad
 
-export function LocationSearch({ value, onChange }: Props) {
-  const { lang } = useLang();
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
+export function LocationSearch({ value, onChange, onGpsError, className }: Props) {
+  const { lang, t } = useLang();
+  const [loadingGps, setLoadingGps] = useState(false);
 
-  // Default to Ahmedabad if nothing selected (runs once on mount)
+  // Default to Ahmedabad if nothing selected
   useEffect(() => {
     if (!value) onChange(DEFAULT_CITY);
-  }, []);
+  }, [value, onChange]);
 
   const current = value || DEFAULT_CITY;
   const currentLabel = lang === "gu" ? current.name_gu : current.name_en;
 
-  const filtered = useMemo(() => {
-    const q = query.toLowerCase().trim();
-    if (!q) return CITIES;
-    return CITIES.filter(
-      (c) =>
-        c.name_en.toLowerCase().includes(q) ||
-        c.name_gu.includes(query.trim()) ||
-        c.state.toLowerCase().includes(q)
-    );
-  }, [query]);
+  // Detect system timezone mismatch
+  const systemTz = getSystemTimezone();
+  const targetTz = current.tz || "Asia/Kolkata";
+  const isTzMismatched = systemTz !== targetTz;
 
-  // Sort: Gujarat first when no query
-  const sorted = useMemo(() => {
-    if (query) return filtered;
-    return [...filtered].sort((a, b) => {
-      const aG = a.state === "Gujarat" ? 0 : 1;
-      const bG = b.state === "Gujarat" ? 0 : 1;
-      if (aG !== bG) return aG - bG;
-      return a.name_en.localeCompare(b.name_en);
-    });
-  }, [filtered, query]);
+  const handleQuickSync = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      if (onGpsError) onGpsError();
+      return;
+    }
+
+    setLoadingGps(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const nearest = findNearestCity(latitude, longitude, 50);
+
+        if (nearest) {
+          onChange(nearest);
+          setLoadingGps(false);
+        } else {
+          const sysTz = getSystemTimezone();
+          const tzCity = getCityNameFromTimezone(sysTz);
+          const initialCity: CityDef = {
+            name_en: tzCity,
+            name_gu: tzCity,
+            lat: latitude,
+            lng: longitude,
+            state: sysTz,
+            tz: sysTz,
+          };
+          onChange(initialCity);
+          setLoadingGps(false);
+
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            const res = await fetch(
+              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
+              { signal: controller.signal }
+            );
+            clearTimeout(timeoutId);
+            if (res.ok) {
+              const geo = await res.json();
+              const cityName = geo.city || geo.locality || geo.principalSubdivision || tzCity;
+              const country = geo.countryName || sysTz;
+              onChange({
+                name_en: cityName,
+                name_gu: cityName,
+                lat: latitude,
+                lng: longitude,
+                state: country,
+                tz: sysTz,
+              });
+            }
+          } catch {
+            // Keep initial fallback
+          }
+        }
+      },
+      () => {
+        setLoadingGps(false);
+        if (onGpsError) onGpsError();
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className="gap-2 rounded-full border-primary/20 bg-background/80 backdrop-blur hover:bg-accent/40 h-10 px-3"
-        >
-          <MapPin className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-sm font-medium text-foreground">
-            {currentLabel}
-          </span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-[min(92vw,360px)] p-0"
-        align="end"
-        sideOffset={8}
-      >
-        <div className="p-2 border-b border-border/60">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              autoFocus
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={lang === "gu" ? "શહેર શોધો..." : "Search city..."}
-              className="pl-9 h-9"
-            />
-          </div>
-        </div>
-        <div className="max-h-72 overflow-y-auto fancy-scroll p-1">
-          {sorted.map((c) => {
-            const selected = current.name_en === c.name_en;
-            return (
-              <button
-                key={`${c.name_en}-${c.state}`}
-                onClick={() => {
-                  onChange(c);
-                  setOpen(false);
-                  setQuery("");
-                }}
-                className={cn(
-                  "w-full text-left px-3 py-2 rounded-md flex items-center justify-between gap-2 transition-colors",
-                  selected ? "bg-accent/40" : "hover:bg-muted/60"
-                )}
-              >
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">
-                      {lang === "gu" ? c.name_gu : c.name_en}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {c.state}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {c.state === "Gujarat" && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] border-primary/30 text-primary"
-                    >
-                      Gujarat
-                    </Badge>
-                  )}
-                  {selected && <Check className="h-4 w-4 text-primary" />}
-                </div>
-              </button>
-            );
-          })}
-          {sorted.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              {lang === "gu" ? "કોઈ શહેર મળ્યું નથી" : "No city found"}
-            </p>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+    <Button
+      variant="outline"
+      onClick={handleQuickSync}
+      disabled={loadingGps}
+      aria-label={lang === "gu" ? "જીપીએસ સ્થાન ઓટો ફેચ કરો" : "Auto fetch GPS location"}
+      className={cn(
+        "gap-1.5 rounded-full border-primary/20 bg-background/80 backdrop-blur hover:bg-accent/40 h-9 px-2.5 sm:px-3 transition-all shrink-0 max-w-[140px] xs:max-w-[160px] sm:max-w-[200px]",
+        className
+      )}
+    >
+      {loadingGps ? (
+        <Loader2 className="h-3.5 w-3.5 text-primary animate-spin shrink-0" />
+      ) : (
+        <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+      )}
+      <span className="text-xs font-semibold text-foreground truncate max-w-[70px] xs:max-w-[90px] sm:max-w-[130px]">
+        {currentLabel}
+      </span>
+      {isTzMismatched && (
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" title={t("tzMismatch", lang)} />
+      )}
+    </Button>
   );
 }

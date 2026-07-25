@@ -175,3 +175,46 @@
   border: 1.5px solid oklch(0.62 0.16 35);
   border-radius: 9999px;
 }
+
+/* Smooth marquee animation for overflowing city names */
+@keyframes marqueeScroll {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee-scroll {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marqueeScroll 8s linear infinite;
+}
+.animate-marquee-scroll:hover {
+  animation-play-state: paused;
+}
+
+/* Custom Sunrise & Sunset Sun Animations */
+@keyframes sunRiseFloat {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.06);
+    box-shadow: 0 0 22px rgba(245, 158, 11, 0.65);
+  }
+}
+.animate-sunrise-float {
+  animation: sunRiseFloat 3.2s ease-in-out infinite;
+}
+
+@keyframes sunSetFloat {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+    box-shadow: 0 0 12px rgba(249, 115, 22, 0.35);
+  }
+  50% {
+    transform: translateY(3px) scale(0.96);
+    box-shadow: 0 0 22px rgba(249, 115, 22, 0.65);
+  }
+}
+.animate-sunset-float {
+  animation: sunSetFloat 3.2s ease-in-out infinite;
+}

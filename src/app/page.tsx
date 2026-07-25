@@ -15,15 +15,26 @@ import { PanchangToday } from "@/components/wizard/panchang-today";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   EVENTS,
   METHODS,
+  CITIES,
+  findNearestCity,
   resolveAutoMethods,
   type EventId,
   type MethodId,
   type CityDef,
   type TimeWindow,
 } from "@/lib/events";
-import { useState } from "react";
+import { getSystemTimezone, getCityNameFromTimezone } from "@/lib/time-utils";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -31,9 +42,11 @@ import {
   CalendarClock,
   ListChecks,
   Moon,
+  MapPin,
+  Home,
 } from "lucide-react";
 import Image from "next/image";
-import { format } from "date-fns";
+import { formatHeaderDateTime } from "@/lib/i18n";
 
 const IST_OFFSET = 5.5; // Gujarat is IST = UTC+5:30
 
@@ -48,13 +61,84 @@ function ShubhSamayApp() {
   const [dates, setDates] = useState<Date[]>([]);
   const [timeWindow, setTimeWindow] = useState<TimeWindow | null>(null);
   const [city, setCity] = useState<CityDef | null>(null);
+  const [showDefaultLocationDialog, setShowDefaultLocationDialog] = useState(false);
+  const [now, setNow] = useState<Date>(new Date());
+
+  // Live timer for header date & time display
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const [highlySlots, setHighlySlots] = useState<TimingResult[]>([]);
   const [auspiciousSlots, setAuspiciousSlots] = useState<TimingResult[]>([]);
   const [goodSlots, setGoodSlots] = useState<TimingResult[]>([]);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
+  const [bestRecommendationSlot, setBestRecommendationSlot] = useState<TimingResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Initial location load & first-launch GPS permission handling
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const saved = localStorage.getItem("shubh_samay_location");
+    if (saved) {
+      try {
+        setCity(JSON.parse(saved));
+        return;
+      } catch {
+        // Fall through if invalid JSON
+      }
+    }
+
+    // No saved location -> First-time app open: request GPS permission
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          const nearest = findNearestCity(latitude, longitude, 50);
+          if (nearest) {
+            setCity(nearest);
+            localStorage.setItem("shubh_samay_location", JSON.stringify(nearest));
+          } else {
+            const sysTz = getSystemTimezone();
+            const tzCity = getCityNameFromTimezone(sysTz);
+            const customLoc: CityDef = {
+              name_en: tzCity,
+              name_gu: tzCity,
+              lat: latitude,
+              lng: longitude,
+              state: sysTz,
+              tz: sysTz,
+            };
+            setCity(customLoc);
+            localStorage.setItem("shubh_samay_location", JSON.stringify(customLoc));
+          }
+        },
+        () => {
+          // Permission declined or error -> Fallback to Ahmedabad + show notice dialog
+          const ahmedabad = CITIES[0];
+          setCity(ahmedabad);
+          localStorage.setItem("shubh_samay_location", JSON.stringify(ahmedabad));
+          setShowDefaultLocationDialog(true);
+        },
+        { timeout: 10000, enableHighAccuracy: true }
+      );
+    } else {
+      const ahmedabad = CITIES[0];
+      setCity(ahmedabad);
+      localStorage.setItem("shubh_samay_location", JSON.stringify(ahmedabad));
+      setShowDefaultLocationDialog(true);
+    }
+  }, []);
+
+  const handleCityChange = (newCity: CityDef) => {
+    setCity(newCity);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("shubh_samay_location", JSON.stringify(newCity));
+    }
+  };
 
   const stepIdx = STEP_ORDER.indexOf(step);
   const eventDef = EVENTS.find((e) => e.id === eventId);
@@ -106,6 +190,7 @@ function ShubhSamayApp() {
     setAuspiciousSlots([]);
     setGoodSlots([]);
     setSuggestion(null);
+    setBestRecommendationSlot(null);
     setError(null);
   };
 
@@ -158,6 +243,7 @@ function ShubhSamayApp() {
       setAuspiciousSlots(data.auspicious || []);
       setGoodSlots(data.good || []);
       setSuggestion(data.suggestion || null);
+      setBestRecommendationSlot(data.bestRecommendation || null);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -219,29 +305,23 @@ function ShubhSamayApp() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-background/85 backdrop-blur border-b border-border/60">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Image
-              src="/logo.png"
-              alt="Shubh Samay"
-              width={36}
-              height={36}
-              className="rounded-lg shadow-sm shrink-0"
-              priority
-            />
-            <div className="leading-tight min-w-0">
-              <h1 className="font-bold text-base text-foreground whitespace-nowrap">
-                {t("appName")}
-              </h1>
-              <p className="text-[11px] text-muted-foreground hidden sm:block">
-                {t("appTagline")}
-              </p>
-            </div>
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-border/60 shadow-2xs">
+        <div className="max-w-2xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
+          <div className="leading-tight min-w-0 flex-1">
+            <h1 className="font-bold text-base sm:text-lg text-foreground truncate">
+              {lang === "gu" ? "આજનું પંચાંગ" : "Today's Panchang"}
+            </h1>
+            <p className="text-xs font-semibold text-primary/95 truncate pt-0.5">
+              {formatHeaderDateTime(now, lang, IST_OFFSET, city?.tz)}
+            </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <LocationSearch value={city} onChange={setCity} />
-            <SettingsButton />
+            <LocationSearch
+              value={city}
+              onChange={handleCityChange}
+              onGpsError={() => setShowDefaultLocationDialog(true)}
+            />
+            <SettingsButton city={city} onCityChange={handleCityChange} />
           </div>
         </div>
       </header>
@@ -250,7 +330,7 @@ function ShubhSamayApp() {
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-6 space-y-5">
         {/* Today's panchang widget — only on home (event step) */}
         {step === "event" && (
-          <PanchangToday city={city} tzOffsetHours={IST_OFFSET} />
+          <PanchangToday city={city} tzOffsetHours={IST_OFFSET} onCityChange={handleCityChange} />
         )}
 
         {/* Progress indicator */}
@@ -307,7 +387,7 @@ function ShubhSamayApp() {
               highly={highlySlots}
               auspicious={auspiciousSlots}
               good={goodSlots}
-              suggestion={suggestion}
+              bestRecommendation={bestRecommendationSlot}
               loading={loading}
               error={error}
               eventName={
@@ -318,10 +398,25 @@ function ShubhSamayApp() {
                   : undefined
               }
               onReset={reset}
-              onAddSuggestedDate={addSuggestedDate}
             />
           )}
         </Card>
+
+        {/* Home button on results page */}
+        {step === "results" && (
+          <div className="flex justify-center pt-1">
+            <Button
+              onClick={reset}
+              variant="ghost"
+              size="sm"
+              aria-label={t("home")}
+              className="gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <Home className="h-4 w-4" />
+              {t("home")}
+            </Button>
+          </div>
+        )}
 
         {/* Selection summary chips */}
         {step !== "results" && step !== "event" && (
@@ -357,7 +452,16 @@ function ShubhSamayApp() {
 
         {/* Navigation buttons — hidden on event step (auto-advances) */}
         {step !== "results" && step !== "event" && (
-          <div className="flex items-center gap-3 pt-1">
+          <div className="flex items-center gap-2 pt-1">
+            <Button
+              onClick={reset}
+              variant="ghost"
+              size="icon"
+              aria-label={t("home")}
+              className="shrink-0 text-muted-foreground hover:text-foreground"
+            >
+              <Home className="h-4 w-4" />
+            </Button>
             <Button onClick={back} variant="outline" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
               {t("back")}
@@ -383,14 +487,28 @@ function ShubhSamayApp() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="mt-auto border-t border-border/60 bg-background/80 backdrop-blur py-4">
-        <div className="max-w-2xl mx-auto px-4 text-center">
-          <p className="text-sm text-foreground/80 font-medium">
-            {t("footerLove")}
-          </p>
-        </div>
-      </footer>
+      {/* First-launch Default Location Notification Modal */}
+      <Dialog open={showDefaultLocationDialog} onOpenChange={setShowDefaultLocationDialog}>
+        <DialogContent className="max-w-md p-6 border-primary/20">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="flex items-center gap-2 text-foreground text-base">
+              <MapPin className="h-5 w-5 text-primary shrink-0" />
+              {t("defaultLocationNoticeTitle")}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground pt-1 leading-relaxed">
+              {t("defaultLocationNoticeBody")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-4">
+            <Button
+              onClick={() => setShowDefaultLocationDialog(false)}
+              className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {t("gotIt")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

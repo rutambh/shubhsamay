@@ -3,18 +3,16 @@
 import { useLang } from "@/hooks/use-lang";
 import { Card } from "@/components/ui/card";
 import { useEffect, useState, useCallback } from "react";
-import { Sunrise, Sunset, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChoghadiyaQuality } from "@/lib/time-divisions";
-import type { Tier } from "@/lib/events";
+import type { Tier, CityDef } from "@/lib/events";
 import { classifyYoga } from "@/lib/events";
-import { formatTzTime, formatTzDate } from "@/lib/i18n";
-
-const TZ_OFFSET = 5.5;
+import { formatTzTime } from "@/lib/i18n";
+import { SunTrackerCard } from "@/components/wizard/sun-tracker-card";
 
 interface PanchangData {
   now: string;
-  tithi: { name_en: string; name_gu: string; paksha: string; paksha_gu: string };
+  tithi: { name_en: string; name_gu: string; paksha: string; paksha_gu: string; start?: string; end?: string };
   nakshatra: { name_en: string; name_gu: string; lord: string };
   yoga: { index: number; name_en: string; name_gu: string };
   karana: { name_en: string; name_gu: string };
@@ -45,15 +43,15 @@ interface PanchangData {
 }
 
 interface Props {
-  city: { lat: number; lng: number; name_en: string; name_gu: string } | null;
+  city: CityDef | null;
   tzOffsetHours: number;
+  onCityChange?: (city: CityDef) => void;
 }
 
 export function PanchangToday({ city, tzOffsetHours }: Props) {
   const { lang } = useLang();
   const [data, setData] = useState<PanchangData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchData = useCallback(async () => {
     const loc = city || {
@@ -61,6 +59,7 @@ export function PanchangToday({ city, tzOffsetHours }: Props) {
       lng: 72.5714,
       name_en: "Ahmedabad",
       name_gu: "અમદાવાદ",
+      tz: "Asia/Kolkata",
     };
     try {
       const res = await fetch("/api/panchang", {
@@ -71,12 +70,12 @@ export function PanchangToday({ city, tzOffsetHours }: Props) {
           lat: loc.lat,
           lng: loc.lng,
           tzOffsetHours,
+          tz: loc.tz,
         }),
       });
       const d = await res.json();
       if (d.ok) {
         setData(d);
-        setLastUpdated(new Date());
       }
     } catch {
       // ignore
@@ -94,55 +93,43 @@ export function PanchangToday({ city, tzOffsetHours }: Props) {
 
   if (loading || !data) {
     return (
-      <Card className="p-4 animate-pulse bg-card/60">
-        <div className="h-4 w-32 bg-muted rounded mb-3" />
-        <div className="grid grid-cols-3 gap-2">
+      <Card className="p-3 sm:p-4 animate-pulse bg-card/60">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-16 bg-muted rounded" />
+            <div key={i} className="h-14 bg-muted rounded-lg" />
           ))}
         </div>
       </Card>
     );
   }
 
-  const cityLabel = city
-    ? lang === "gu"
-      ? city.name_gu
-      : city.name_en
-    : lang === "gu"
-    ? "અમદાવાદ"
-    : "Ahmedabad";
+  const targetTz = city?.tz;
 
   return (
-    <Card className="p-4 bg-card/80 backdrop-blur border-primary/20">
-      <div className="flex items-center justify-between mb-3 gap-2">
-        <div className="min-w-0">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-            {lang === "gu" ? "આજનું પંચાંગ" : "Today's Panchang"}
-            <RefreshCw className="h-2.5 w-2.5" />
-            {lastUpdated && (
-              <span className="text-[9px] opacity-70">
-                · {formatTzTime(lastUpdated.toISOString(), tzOffsetHours)}
-              </span>
-            )}
-          </p>
-          <p className="text-sm font-semibold text-foreground">
-            {formatTzDate(data.now, tzOffsetHours, false)} · {cityLabel}
-          </p>
-        </div>
-        {data.currentRahuKaal && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 font-medium shrink-0">
-            {lang === "gu" ? "રાહુ કાળ ચાલુ" : "Rahu Kaal"}
+    <Card className="p-3 sm:p-3.5 bg-card/90 backdrop-blur border-primary/25 shadow-sm space-y-2.5">
+      {/* Rahu Kaal Banner if Active */}
+      {data.currentRahuKaal && data.currentRahuKaal.isActive && (
+        <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-700 dark:text-red-300 text-xs font-semibold">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-red-500 animate-ping" />
+            {lang === "gu" ? "રાહુ કાળ ચાલુ છે" : "Rahu Kaal Active"}
           </span>
-        )}
-      </div>
+          <span>
+            {formatTzTime(data.currentRahuKaal.start, tzOffsetHours, false, targetTz)} – {formatTzTime(data.currentRahuKaal.end, tzOffsetHours, false, targetTz)}
+          </span>
+        </div>
+      )}
 
-      {/* 6 cards: Tithi, Vara, Nakshatra, Muhurat, Hora, Choghadiya */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* 6 compact cards: Tithi, Vara, Nakshatra, Yoga/Karana, Hora, Choghadiya */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <Cell
           label={lang === "gu" ? "તિથિ" : "Tithi"}
           value={lang === "gu" ? data.tithi.name_gu : data.tithi.name_en}
-          sub={lang === "gu" ? data.tithi.paksha_gu : data.tithi.paksha}
+          sub={
+            data.tithi.start && data.tithi.end
+              ? `${lang === "gu" ? data.tithi.paksha_gu : data.tithi.paksha} • ${formatTzTime(data.tithi.start, tzOffsetHours, false, targetTz)}–${formatTzTime(data.tithi.end, tzOffsetHours, false, targetTz)}`
+              : lang === "gu" ? data.tithi.paksha_gu : data.tithi.paksha
+          }
         />
         <Cell
           label={lang === "gu" ? "વાર" : "Vara"}
@@ -153,7 +140,7 @@ export function PanchangToday({ city, tzOffsetHours }: Props) {
           value={lang === "gu" ? data.nakshatra.name_gu : data.nakshatra.name_en}
         />
         <Cell
-          label={lang === "gu" ? "મુહૂર્ત" : "Muhurat"}
+          label={lang === "gu" ? "યોગ / કરણ" : "Yoga / Karana"}
           value={lang === "gu" ? data.yoga.name_gu : data.yoga.name_en}
           sub={lang === "gu" ? data.karana.name_gu : data.karana.name_en}
           tone={tierToTone(data.yoga ? classifyYoga(data.yoga.index) : "good")}
@@ -169,7 +156,7 @@ export function PanchangToday({ city, tzOffsetHours }: Props) {
           }
           sub={
             data.currentHora
-              ? `${formatTzTime(data.currentHora.start, tzOffsetHours, true)}–${formatTzTime(data.currentHora.end, tzOffsetHours, true)}`
+              ? `${formatTzTime(data.currentHora.start, tzOffsetHours, false, targetTz)}–${formatTzTime(data.currentHora.end, tzOffsetHours, false, targetTz)}`
               : undefined
           }
           tone={data.currentHora?.isGood ? "good" : "bad"}
@@ -185,7 +172,7 @@ export function PanchangToday({ city, tzOffsetHours }: Props) {
           }
           sub={
             data.currentChoghadiya
-              ? `${formatTzTime(data.currentChoghadiya.start, tzOffsetHours, true)}–${formatTzTime(data.currentChoghadiya.end, tzOffsetHours, true)}`
+              ? `${formatTzTime(data.currentChoghadiya.start, tzOffsetHours, false, targetTz)}–${formatTzTime(data.currentChoghadiya.end, tzOffsetHours, false, targetTz)}`
               : undefined
           }
           tone={
@@ -198,28 +185,15 @@ export function PanchangToday({ city, tzOffsetHours }: Props) {
         />
       </div>
 
-      {/* Sunrise / Sunset as text */}
+      {/* Sunrise & Sunset at bottom */}
       {data.sunrise && data.sunset && (
-        <div className="mt-3 pt-3 border-t border-border/60 flex items-center justify-center gap-5 text-xs">
-          <div className="flex items-center gap-1.5 text-foreground">
-            <Sunrise className="h-3.5 w-3.5 text-amber-500" />
-            <span className="font-medium">
-              {lang === "gu" ? "સૂર્યોદય" : "Sunrise"}:
-            </span>
-            <span className="font-semibold">
-              {formatTzTime(data.sunrise, tzOffsetHours)}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-foreground">
-            <Sunset className="h-3.5 w-3.5 text-orange-500" />
-            <span className="font-medium">
-              {lang === "gu" ? "સૂર્યાસ્ત" : "Sunset"}:
-            </span>
-            <span className="font-semibold">
-              {formatTzTime(data.sunset, tzOffsetHours)}
-            </span>
-          </div>
-        </div>
+        <SunTrackerCard
+          sunrise={data.sunrise}
+          sunset={data.sunset}
+          now={data.now}
+          tzOffsetHours={tzOffsetHours}
+          targetTz={targetTz}
+        />
       )}
     </Card>
   );
@@ -239,23 +213,31 @@ function Cell({
   // Green = good, Yellow = mixed/average, Red = bad
   const toneClass =
     tone === "good"
-      ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400"
+      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
       : tone === "bad"
-      ? "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400"
+      ? "bg-rose-500/10 border-rose-500/30 text-rose-800 dark:text-rose-300"
       : tone === "mixed"
-      ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-700 dark:text-yellow-400"
-      : "bg-secondary/40 border-transparent";
+      ? "bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300"
+      : "bg-secondary/40 border-border/60 text-foreground";
+
   return (
-    <div className={cn("rounded-lg border px-2 py-2 text-center", toneClass)}>
-      <p className="text-[10px] uppercase tracking-wide opacity-70">
+    <div
+      className={cn(
+        "p-2 sm:p-2.5 rounded-lg border flex flex-col justify-between transition-all shadow-2xs min-h-[60px]",
+        toneClass
+      )}
+    >
+      <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider">
         {label}
       </p>
-      <p className="text-sm font-semibold leading-tight mt-0.5 break-words">
-        {value}
-      </p>
-      {sub && (
-        <p className="text-[10px] opacity-70 mt-0.5 break-words">{sub}</p>
-      )}
+      <div>
+        <p className="text-xs sm:text-sm font-bold truncate leading-tight">
+          {value}
+        </p>
+        {sub && (
+          <p className="text-[10px] font-medium opacity-90 truncate leading-tight pt-0.5">{sub}</p>
+        )}
+      </div>
     </div>
   );
 }

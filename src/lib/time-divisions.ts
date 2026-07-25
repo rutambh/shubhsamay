@@ -9,29 +9,30 @@ import { getSunrise, getSunset, type LatLng } from "./panchang";
 // ============ CHOGHADIYA ============
 // Day is divided into 8 equal parts from sunrise to sunset (Day Choghadiya)
 // Night is divided into 8 equal parts from sunset to next sunrise (Night Choghadiya)
-// Each part has a name and a quality (Good/Bad/Mixed).
-// The sequence differs between day and night and rotates by weekday.
+// The 7 Choghadiya names correspond to the 7 Grahas (Sun..Sat).
+// Day 1st slot is ruled by weekday lord. Planetary order for Day: Sun -> Venus -> Mercury -> Moon -> Saturn -> Jupiter -> Mars.
+// Night 1st slot starting planet for weekday (Sun..Sat): Jupiter, Venus, Mercury, Mars, Moon, Saturn, Sun.
+// Planetary order for Night: Moon -> Venus -> Mars -> Saturn -> Mercury -> Sun -> Jupiter.
 
 export type ChoghadiyaQuality = "good" | "mixed" | "bad";
 
 export const CHOGHADIYA_NAMES_EN = [
-  "Udvega", "Amrit", "Rog", "Shubh", "Labh", "Char", "Kaal", "Dudh",
+  "Udvega", "Amrit", "Rog", "Labh", "Shubh", "Char", "Kaal",
 ];
 
 export const CHOGHADIYA_NAMES_GU = [
-  "ઉદ્વેગ", "અમૃત", "રોગ", "શુભ", "લાભ", "ચર", "કાળ", "દૂધ",
+  "ઉદ્વેગ", "અમૃત", "રોગ", "લાભ", "શુભ", "ચર", "કાળ",
 ];
 
-// Quality of each choghadiya (index matches name)
+// Quality of each choghadiya (index matches planet order: 0=Udvega, 1=Amrit, 2=Rog, 3=Labh, 4=Shubh, 5=Char, 6=Kaal)
 export const CHOGHADIYA_QUALITY: ChoghadiyaQuality[] = [
-  "bad",   // Udvega
-  "good",  // Amrit
-  "bad",   // Rog
-  "good",  // Shubh
-  "good",  // Labh
-  "mixed", // Char
-  "bad",   // Kaal
-  "mixed", // Dudh
+  "bad",   // Udvega (Sun)
+  "good",  // Amrit (Moon)
+  "bad",   // Rog (Mars)
+  "good",  // Labh (Mercury)
+  "good",  // Shubh (Jupiter)
+  "mixed", // Char (Venus)
+  "bad",   // Kaal (Saturn)
 ];
 
 export const QUALITY_LABEL_EN: Record<ChoghadiyaQuality, string> = {
@@ -46,11 +47,14 @@ export const QUALITY_LABEL_GU: Record<ChoghadiyaQuality, string> = {
   bad: "અશુભ",
 };
 
-// Starting choghadiya index for each weekday's DAY period
-// (Traditional tables: Udvega=0, Amrit=1, Rog=2, Shubh=3, Labh=4, Char=5, Kaal=6, Dudh=7)
-const DAY_START_INDEX = [5, 4, 3, 2, 1, 0, 7]; // Sun..Sat
-// Starting choghadiya index for each weekday's NIGHT period
-const NIGHT_START_INDEX = [2, 1, 0, 7, 6, 5, 4]; // Sun..Sat
+// Day Choghadiya planet sequence starting from Sun(0)
+const DAY_PLANET_SEQUENCE = [0, 5, 3, 1, 6, 4, 2];
+
+// Night Choghadiya starting planet index for each weekday (Sun..Sat)
+const NIGHT_START_PLANET = [4, 5, 3, 2, 1, 6, 0];
+
+// Night Choghadiya planet sequence starting from Moon(1)
+const NIGHT_PLANET_SEQUENCE = [1, 5, 2, 6, 3, 0, 4];
 
 export interface ChoghadiyaSlot {
   start: Date;
@@ -59,6 +63,28 @@ export interface ChoghadiyaSlot {
   name_gu: string;
   quality: ChoghadiyaQuality;
   period: "day" | "night";
+}
+
+/**
+ * Computes timezone-aware local weekday index (0=Sun..6=Sat) for a given Date at a location.
+ */
+export function getLocalWeekday(date: Date, loc: LatLng): number {
+  if (loc.tz) {
+    try {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: loc.tz,
+        weekday: "short",
+      }).formatToParts(date);
+      const wStr = parts.find((p) => p.type === "weekday")?.value;
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const idx = days.findIndex((d) => wStr?.startsWith(d));
+      if (idx !== -1) return idx;
+    } catch {
+      // Fall through to offset math
+    }
+  }
+  const localMs = date.getTime() + loc.tzOffsetHours * 3600000;
+  return new Date(localMs).getUTCDay();
 }
 
 /**
@@ -75,15 +101,16 @@ export function getChoghadiya(date: Date, loc: LatLng): ChoghadiyaSlot[] {
   nextDay.setDate(nextDay.getDate() + 1);
   const nextSunrise = getSunrise(nextDay, loc) || new Date(sunset.getTime() + 12 * 3600000);
 
-  const weekday = sunrise.getDay();
+  const weekday = getLocalWeekday(sunrise, loc); // Timezone-aware sunrise weekday
 
   // Day period: sunrise -> sunset, 8 equal parts
+  const dayLord = weekday;
+  const dayStartIdx = DAY_PLANET_SEQUENCE.indexOf(dayLord);
   const dayDuration = sunset.getTime() - sunrise.getTime();
-  const dayStart = DAY_START_INDEX[weekday];
   for (let i = 0; i < 8; i++) {
     const start = new Date(sunrise.getTime() + (dayDuration * i) / 8);
     const end = new Date(sunrise.getTime() + (dayDuration * (i + 1)) / 8);
-    const idx = (dayStart + i) % 8;
+    const idx = DAY_PLANET_SEQUENCE[(dayStartIdx + i) % 7];
     slots.push({
       start,
       end,
@@ -95,12 +122,13 @@ export function getChoghadiya(date: Date, loc: LatLng): ChoghadiyaSlot[] {
   }
 
   // Night period: sunset -> next sunrise, 8 equal parts
+  const nightLord = NIGHT_START_PLANET[weekday];
+  const nightStartIdx = NIGHT_PLANET_SEQUENCE.indexOf(nightLord);
   const nightDuration = nextSunrise.getTime() - sunset.getTime();
-  const nightStart = NIGHT_START_INDEX[weekday];
   for (let i = 0; i < 8; i++) {
     const start = new Date(sunset.getTime() + (nightDuration * i) / 8);
     const end = new Date(sunset.getTime() + (nightDuration * (i + 1)) / 8);
-    const idx = (nightStart + i) % 8;
+    const idx = NIGHT_PLANET_SEQUENCE[(nightStartIdx + i) % 7];
     slots.push({
       start,
       end,
@@ -153,7 +181,7 @@ export function getHoras(date: Date, loc: LatLng): HoraSlot[] {
   nextDay.setDate(nextDay.getDate() + 1);
   const nextSunrise = getSunrise(nextDay, loc) || new Date(sunset.getTime() + 12 * 3600000);
 
-  const weekday = sunrise.getDay();
+  const weekday = getLocalWeekday(sunrise, loc);
   // First hora lord = day lord (Sun=0, Moon=1, Mars=2, Mercury=3, Jupiter=4, Venus=5, Saturn=6)
   const firstHoraLord = weekday; // 0-6 (Sun..Sat) matches our planet index
 
@@ -207,8 +235,8 @@ const RAHU_KAAL_OFFSET = [8, 2, 7, 5, 6, 4, 3]; // Sun=8th(0-indexed 7), Mon=2nd
 // Recompute properly: standard table
 // Sun: 8th part (index 7), Mon: 2nd (1), Tue: 7th (6), Wed: 5th (4), Thu: 6th (5), Fri: 4th (3), Sat: 3rd (2)
 const RAHU_OFFSETS = [7, 1, 6, 4, 5, 3, 2];
-// Yamaganda offsets (Sun..Sat): 5th, 4th, 3rd, 1st, 7th (or 6th), 8th (or 7th), 2nd
-const YAMAGANDA_OFFSETS = [4, 3, 2, 0, 5, 7, 1];
+// Yamaganda offsets (Sun..Sat): 5th(4), 4th(3), 3rd(2), 2nd(1), 1st(0), 7th(6), 6th(5)
+const YAMAGANDA_OFFSETS = [4, 3, 2, 1, 0, 6, 5];
 // Gulika offsets: 7th, 6th, 5th (or 1st), 4th, 3rd (or 2nd), 2nd (or 5th), 8th
 // Standard: Sun=7th(6), Mon=6th(5), Tue=5th(4), Wed=4th(3) [non-day], Thu=3rd(2) [non-day], Fri=2nd(1) [non-day], Sat=1st(0)
 const GULIKA_OFFSETS = [6, 5, 4, 3, 2, 1, 0];
@@ -228,7 +256,7 @@ export function getInauspiciousPeriods(date: Date, loc: LatLng): InauspiciousPer
 
   const dayDuration = sunset.getTime() - sunrise.getTime();
   const part = dayDuration / 8;
-  const weekday = sunrise.getDay();
+  const weekday = getLocalWeekday(sunrise, loc);
 
   const push = (offsets: number[], name_en: string, name_gu: string) => {
     const idx = offsets[weekday];

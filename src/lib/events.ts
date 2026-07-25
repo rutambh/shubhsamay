@@ -306,8 +306,8 @@ export const METHODS: MethodDef[] = [
     id: "muhurat",
     name_en: "Muhurat",
     name_gu: "મુહૂર્ત",
-    description_en: "Daily Muhurat periods (Abhijit, Brahma)",
-    description_gu: "દૈનિક મુહૂર્ત સમય (અભિજિત, બ્રહ્મ)",
+    description_en: "Special Muhurats (Abhijit, Brahma, Vijaya, Godhuli, Pradosh, Nishita)",
+    description_gu: "ખાસ મુહૂર્ત (અભિજિત, બ્રહ્મ, વિજય, ગોધૂલિ, પ્રદોષ, નિશિથ)",
   },
 ];
 
@@ -509,6 +509,8 @@ export function getFavorableVaras(event: EventId, lang: "en" | "gu"): string[] {
 // Brahma Muhurat: 48 min ending 48 min before sunrise → Highly Auspicious
 // Returns null if not in any Muhurat period (slot should be disqualified)
 // Checks OVERLAP (slot overlaps with Muhurat period), not just start time.
+// Returns active Special Auspicious Muhurat if slot overlaps with any special window
+// Special Muhurats: Abhijit, Brahma, Vijaya, Godhuli, Pradosh, Nishita
 export function classifyMuhurat(
   date: Date,
   loc: LatLng
@@ -517,24 +519,57 @@ export function classifyMuhurat(
   const sunrise = getSunrise(date, loc);
   const sunset = getSunset(date, loc);
 
-  // Abhijit Muhurat: ±12 min around solar noon
-  if (sunrise && sunset) {
-    const noon = new Date((sunrise.getTime() + sunset.getTime()) / 2);
-    const abhijitStart = new Date(noon.getTime() - 12 * 60000);
-    const abhijitEnd = new Date(noon.getTime() + 12 * 60000);
-    // Check overlap: slot start < period end AND slot end > period start
-    if (date < abhijitEnd && slotEnd > abhijitStart) {
-      return { tier: "highly", name_en: "Abhijit", name_gu: "અભિજિત" };
-    }
+  if (!sunrise || !sunset) return null;
+
+  const overlaps = (start: Date, end: Date) => date < end && slotEnd > start;
+
+  // 1. Abhijit Muhurat: ±12 min around solar noon → Highly Auspicious
+  const noon = new Date((sunrise.getTime() + sunset.getTime()) / 2);
+  const abhijitStart = new Date(noon.getTime() - 12 * 60000);
+  const abhijitEnd = new Date(noon.getTime() + 12 * 60000);
+  if (overlaps(abhijitStart, abhijitEnd)) {
+    return { tier: "highly", name_en: "Abhijit", name_gu: "અભિજિત" };
   }
 
-  // Brahma Muhurat: last 48 min before sunrise (96 min to 48 min before sunrise)
-  if (sunrise) {
-    const brahmaStart = new Date(sunrise.getTime() - 96 * 60000);
-    const brahmaEnd = new Date(sunrise.getTime() - 48 * 60000);
-    if (date < brahmaEnd && slotEnd > brahmaStart) {
-      return { tier: "highly", name_en: "Brahma", name_gu: "બ્રહ્મ" };
-    }
+  // 2. Brahma Muhurat: 96 min to 48 min before sunrise → Highly Auspicious
+  const brahmaStart = new Date(sunrise.getTime() - 96 * 60000);
+  const brahmaEnd = new Date(sunrise.getTime() - 48 * 60000);
+  if (overlaps(brahmaStart, brahmaEnd)) {
+    return { tier: "highly", name_en: "Brahma", name_gu: "બ્રહ્મ" };
+  }
+
+  // 3. Vijaya Muhurat: 11th Muhurat of daylight (10/15 to 11/15 of day) → Highly Auspicious
+  const dayDuration = sunset.getTime() - sunrise.getTime();
+  const vijayaStart = new Date(sunrise.getTime() + (dayDuration * 10) / 15);
+  const vijayaEnd = new Date(sunrise.getTime() + (dayDuration * 11) / 15);
+  if (overlaps(vijayaStart, vijayaEnd)) {
+    return { tier: "highly", name_en: "Vijaya", name_gu: "વિજય" };
+  }
+
+  // 4. Godhuli Muhurat: ±15 min around sunset → Auspicious
+  const godhuliStart = new Date(sunset.getTime() - 15 * 60000);
+  const godhuliEnd = new Date(sunset.getTime() + 15 * 60000);
+  if (overlaps(godhuliStart, godhuliEnd)) {
+    return { tier: "auspicious", name_en: "Godhuli", name_gu: "ગોધૂલિ" };
+  }
+
+  // 5. Pradosh Kaal: Sunset to 90 min after sunset → Auspicious
+  const pradoshStart = new Date(sunset.getTime());
+  const pradoshEnd = new Date(sunset.getTime() + 90 * 60000);
+  if (overlaps(pradoshStart, pradoshEnd)) {
+    return { tier: "auspicious", name_en: "Pradosh", name_gu: "પ્રદોષ" };
+  }
+
+  // 6. Nishita Muhurat: ±24 min around solar midnight → Auspicious
+  const nextDay = new Date(date);
+  nextDay.setDate(nextDay.getDate() + 1);
+  const nextSunrise = getSunrise(nextDay, loc) || new Date(sunset.getTime() + 12 * 3600000);
+  const nightDuration = nextSunrise.getTime() - sunset.getTime();
+  const midnight = new Date(sunset.getTime() + nightDuration / 2);
+  const nishitaStart = new Date(midnight.getTime() - 24 * 60000);
+  const nishitaEnd = new Date(midnight.getTime() + 24 * 60000);
+  if (overlaps(nishitaStart, nishitaEnd)) {
+    return { tier: "auspicious", name_en: "Nishita", name_gu: "નિશિથ" };
   }
 
   return null;
@@ -549,6 +584,40 @@ export interface SlotClassification {
   yoga?: { name_en: string; name_gu: string; tier: Tier };
   vara?: { name_en: string; name_gu: string; tier: Tier };
   muhurat?: { name_en: string; name_gu: string; tier: Tier; active: boolean };
+}
+
+function getHoraForTime(date: Date, loc: LatLng) {
+  const todayHoras = getHoras(date, loc);
+  let slot = todayHoras.find((h) => date >= h.start && date < h.end);
+  if (slot) return slot;
+
+  const yesterday = new Date(date);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayHoras = getHoras(yesterday, loc);
+  slot = yesterdayHoras.find((h) => date >= h.start && date < h.end);
+  if (slot) return slot;
+
+  const tomorrow = new Date(date);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowHoras = getHoras(tomorrow, loc);
+  return tomorrowHoras.find((h) => date >= h.start && date < h.end);
+}
+
+function getChoghadiyaForTime(date: Date, loc: LatLng) {
+  const todayChoghadiyas = getChoghadiya(date, loc);
+  let slot = todayChoghadiyas.find((c) => date >= c.start && date < c.end);
+  if (slot) return slot;
+
+  const yesterday = new Date(date);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayChoghadiyas = getChoghadiya(yesterday, loc);
+  slot = yesterdayChoghadiyas.find((c) => date >= c.start && date < c.end);
+  if (slot) return slot;
+
+  const tomorrow = new Date(date);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowChoghadiyas = getChoghadiya(tomorrow, loc);
+  return tomorrowChoghadiyas.find((c) => date >= c.start && date < c.end);
 }
 
 /**
@@ -566,10 +635,8 @@ export function classifySlot(
   const reasons_en: string[] = [];
   const reasons_gu: string[] = [];
 
-  const choghadiya = getChoghadiya(date, loc);
-  const slotChoghadiya = choghadiya.find((c) => date >= c.start && date < c.end);
-  const horas = getHoras(date, loc);
-  const slotHora = horas.find((h) => date >= h.start && date < h.end);
+  const slotChoghadiya = getChoghadiyaForTime(date, loc);
+  const slotHora = getHoraForTime(date, loc);
 
   const tithi = getTithi(date);
   const nakshatra = getNakshatra(date);
@@ -580,7 +647,7 @@ export function classifySlot(
   const useHora = methods.includes("hora");
   const useTithi = methods.includes("tithi");
   const useNakshatra = methods.includes("nakshatra");
-  const useYoga = methods.includes("yoga") || methods.includes("muhurat"); // Yoga is part of Muhurat method
+  const useYoga = methods.includes("yoga");
   const useMuhurat = methods.includes("muhurat");
 
   // Reason format: "Category: Value (Tier)"
@@ -651,32 +718,44 @@ export function classifySlot(
     }
   }
 
-  // Compute overall tier = MINIMUM tier across all active categories.
-  // Vara is included but "avoid" is treated as "good" (caps at good, doesn't disqualify).
-  // Muhurat is only included when "active" (in an actual Muhurat period).
+  // Compute overall tier across active selected categories.
   const order: Record<Tier, number> = { highly: 3, auspicious: 2, good: 1, avoid: 0 };
   const tiers: Tier[] = [];
+
   if (classification.choghadiya) tiers.push(classification.choghadiya.tier);
   if (classification.hora) tiers.push(classification.hora.tier);
   if (classification.tithi) tiers.push(classification.tithi.tier);
   if (classification.nakshatra) tiers.push(classification.nakshatra.tier);
   if (classification.yoga) tiers.push(classification.yoga.tier);
-  // Only include Muhurat in tier calc when active (in a real Muhurat period)
   if (classification.muhurat?.active) tiers.push(classification.muhurat.tier);
-  // Vara: include but cap "avoid" → "good" (so it doesn't disqualify the slot)
-  if (classification.vara) {
-    tiers.push(classification.vara.tier === "avoid" ? "good" : classification.vara.tier);
-  }
 
   let overallTier: Tier = "good";
-  if (tiers.length > 0) {
-    overallTier = tiers.reduce((min, t) =>
-      order[t] < order[min] ? t : min, tiers[0]);
-  }
 
-  // If Muhurat was the ONLY method and slot is not in a Muhurat period → disqualify
-  if (muhuratDisqualify) {
-    overallTier = "avoid";
+  if (muhuratOnlyMethod) {
+    // If Muhurat is the ONLY selected method:
+    // Active Special Muhurats dictate Highly or Auspicious tier.
+    // Non-Special-Muhurat slots default to "good".
+    if (classification.muhurat?.active) {
+      overallTier = classification.muhurat.tier;
+    } else {
+      classification.muhurat = {
+        name_en: "General Timing",
+        name_gu: "સામાન્ય સમય",
+        tier: "good",
+        active: false,
+      };
+      overallTier = "good";
+    }
+  } else {
+    // If any active selected category is "avoid", tier is "avoid"
+    if (tiers.includes("avoid")) {
+      overallTier = "avoid";
+    } else if (tiers.length > 0) {
+      const avg = tiers.reduce((sum, t) => sum + order[t], 0) / tiers.length;
+      if (avg >= 2.5) overallTier = "highly";
+      else if (avg >= 1.5) overallTier = "auspicious";
+      else overallTier = "good";
+    }
   }
 
   return { classification, overallTier, reasons_en, reasons_gu };
@@ -777,9 +856,9 @@ export function findBestTimings(
   }
 ): TieredResults {
   const topNPerDate = options?.topNPerDate ?? 10;
-  // Default scan: 4 AM to 9 PM (4 AM captures Brahma Muhurat before sunrise)
-  const startHour = options?.timeWindow?.startHour ?? 4;
-  const endHour = options?.timeWindow?.endHour ?? 21;
+  // Default scan: 0 (midnight) to 24 (next midnight) to cover all 24 hours including night Muhurats
+  const startHour = options?.timeWindow?.startHour ?? 0;
+  const endHour = options?.timeWindow?.endHour ?? 24;
 
   // Collect per-date slots (we'll bucket into cumulative tiers after)
   const byDate = new Map<string, ScoredSlot[]>();
@@ -804,6 +883,10 @@ export function findBestTimings(
           Date.UTC(y, mo, dd, h, m, 0, 0) - loc.tzOffsetHours * 3600000
         );
         const slotEnd = new Date(slotStart.getTime() + 30 * 60000);
+
+        // Filter out past slots (slots that have already ended relative to current instant)
+        const now = new Date();
+        if (slotEnd.getTime() <= now.getTime()) continue;
 
         const { classification, overallTier, reasons_en, reasons_gu } =
           classifySlot(slotStart, event, methods, loc);
@@ -835,10 +918,10 @@ export function findBestTimings(
     return a.start.getTime() - b.start.getTime();
   };
 
-  // Cumulative buckets:
-  // highly = only overallTier === "highly"
-  // auspicious = overallTier is "highly" OR "auspicious"
-  // good = overallTier is "highly" OR "auspicious" OR "good"
+  // Cumulative tier buckets per user specification:
+  // Highly Auspicious = only s.tier === "highly"
+  // Auspicious = s.tier === "highly" || s.tier === "auspicious"
+  // Good = s.tier === "highly" || s.tier === "auspicious" || s.tier === "good"
   const highly = allSlots
     .filter((s) => s.tier === "highly")
     .sort(sortByHighlyCount);
@@ -902,10 +985,9 @@ export function findBetterSuggestion(
     topNPerDate: 1,
   });
 
-  // Only suggest Highly Auspicious nearby slots
-  if (results.highly.length === 0) return null;
-
-  const best = results.highly[0];
+  // Suggest best highly slot first; fallback to best auspicious slot if no highly slots exist
+  const best = results.highly[0] || results.auspicious[0];
+  if (!best) return null;
   const vara = getVara(best.start);
   return {
     date: new Date(best.start),
@@ -921,46 +1003,124 @@ export function findBetterSuggestion(
   };
 }
 
+/**
+ * Find the single #1 Best Recommended Timing for selected dates/timeframe.
+ * Evaluates across ALL 6 methods regardless of what user selected in wizard.
+ * Strictly considers ONLY "highly" and "auspicious" slots (never "good").
+ * Returns null if no highly or auspicious slot exists.
+ */
+export function findBestRecommendedTiming(
+  dates: Date[],
+  event: EventId,
+  loc: LatLng,
+  options?: {
+    timeWindow?: TimeWindow;
+  }
+): ScoredSlot | null {
+  if (dates.length === 0) return null;
+
+  const ALL_METHODS: MethodId[] = ["choghadiya", "hora", "tithi", "nakshatra", "yoga", "muhurat"];
+
+  const results = findBestTimings(dates, event, ALL_METHODS, loc, {
+    timeWindow: options?.timeWindow,
+    topNPerDate: 10,
+  });
+
+  // Must have an active Special Muhurat (Abhijit, Brahma, Vijaya, Godhuli, Pradosh, Nishita)
+  const isSpecialMuhuratSlot = (s: ScoredSlot) => Boolean(s.classification.muhurat?.active);
+
+  // Top Highly Auspicious Special Muhurat slot first
+  const bestHighly = results.highly.find(isSpecialMuhuratSlot);
+  if (bestHighly) return bestHighly;
+
+  // Fallback to top Auspicious Special Muhurat slot
+  const bestAuspicious = results.auspicious.find(isSpecialMuhuratSlot);
+  if (bestAuspicious) return bestAuspicious;
+
+  // If no slot has an active Special Muhurat on those dates/timeframe, return null
+  return null;
+}
+
 // ============ LOCATIONS (Gujarat focus, expandable to India) ============
+import { haversineDistance } from "./time-utils";
+
 export interface CityDef {
   name_en: string;
   name_gu: string;
   lat: number;
   lng: number;
   state: string;
+  tz?: string;
 }
 
 export const CITIES: CityDef[] = [
   // Gujarat
-  { name_en: "Ahmedabad", name_gu: "અમદાવાદ", lat: 23.0225, lng: 72.5714, state: "Gujarat" },
-  { name_en: "Surat", name_gu: "સુરત", lat: 21.1702, lng: 72.8311, state: "Gujarat" },
-  { name_en: "Vadodara", name_gu: "વડોદરા", lat: 22.3072, lng: 73.1812, state: "Gujarat" },
-  { name_en: "Rajkot", name_gu: "રાજકોટ", lat: 22.3039, lng: 70.8022, state: "Gujarat" },
-  { name_en: "Bhavnagar", name_gu: "ભાવનગર", lat: 21.7716, lng: 72.1637, state: "Gujarat" },
-  { name_en: "Jamnagar", name_gu: "જામનગર", lat: 22.4707, lng: 70.0577, state: "Gujarat" },
-  { name_en: "Junagadh", name_gu: "જૂનાગઢ", lat: 21.5222, lng: 70.4579, state: "Gujarat" },
-  { name_en: "Gandhinagar", name_gu: "ગાંધીનગર", lat: 23.2156, lng: 72.6369, state: "Gujarat" },
-  { name_en: "Anand", name_gu: "આનંદ", lat: 22.5645, lng: 72.9289, state: "Gujarat" },
-  { name_en: "Nadiad", name_gu: "નડિયાદ", lat: 22.6916, lng: 72.8634, state: "Gujarat" },
-  { name_en: "Mehsana", name_gu: "મહેસાણા", lat: 23.5926, lng: 72.3809, state: "Gujarat" },
-  { name_en: "Bharuch", name_gu: "ભરૂચ", lat: 21.7051, lng: 72.9969, state: "Gujarat" },
-  { name_en: "Vapi", name_gu: "વાપી", lat: 20.3893, lng: 72.9096, state: "Gujarat" },
-  { name_en: "Gandhidham", name_gu: "ગાંધીધામ", lat: 23.0772, lng: 70.1304, state: "Gujarat" },
-  { name_en: "Bhuj", name_gu: "ભુજ", lat: 23.2420, lng: 69.6669, state: "Gujarat" },
-  { name_en: "Porbandar", name_gu: "પોરબંદર", lat: 21.6417, lng: 69.6293, state: "Gujarat" },
-  { name_en: "Veraval", name_gu: "વેરાવળ", lat: 20.9080, lng: 70.3685, state: "Gujarat" },
-  { name_en: "Morbi", name_gu: "મોરબી", lat: 22.8115, lng: 70.8378, state: "Gujarat" },
-  { name_en: "Patan", name_gu: "પાટણ", lat: 23.8512, lng: 72.1214, state: "Gujarat" },
-  { name_en: "Godhra", name_gu: "ગોધરા", lat: 22.7788, lng: 73.6143, state: "Gujarat" },
-  { name_en: "Navsari", name_gu: "નવસારી", lat: 20.9517, lng: 72.9377, state: "Gujarat" },
-  { name_en: "Valsad", name_gu: "વલસાડ", lat: 20.5992, lng: 72.9342, state: "Gujarat" },
-  { name_en: "Palanpur", name_gu: "પાલનપુર", lat: 24.1755, lng: 72.4317, state: "Gujarat" },
-  { name_en: "Surendranagar", name_gu: "સુરેન્દ્રનગર", lat: 22.7285, lng: 71.6375, state: "Gujarat" },
-  // Major India cities (for future expansion)
-  { name_en: "Mumbai", name_gu: "મુંબઈ", lat: 19.0760, lng: 72.8777, state: "Maharashtra" },
-  { name_en: "Delhi", name_gu: "દિલ્હી", lat: 28.6139, lng: 77.2090, state: "Delhi" },
-  { name_en: "Pune", name_gu: "પુણે", lat: 18.5204, lng: 73.8567, state: "Maharashtra" },
-  { name_en: "Bengaluru", name_gu: "બેંગ્લોર", lat: 12.9716, lng: 77.5946, state: "Karnataka" },
-  { name_en: "Jaipur", name_gu: "જયપુર", lat: 26.9124, lng: 75.7873, state: "Rajasthan" },
-  { name_en: "Udaipur", name_gu: "ઉદયપુર", lat: 24.5854, lng: 73.7125, state: "Rajasthan" },
+  { name_en: "Ahmedabad", name_gu: "અમદાવાદ", lat: 23.0225, lng: 72.5714, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Surat", name_gu: "સુરત", lat: 21.1702, lng: 72.8311, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Vadodara", name_gu: "વડોદરા", lat: 22.3072, lng: 73.1812, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Rajkot", name_gu: "રાજકોટ", lat: 22.3039, lng: 70.8022, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Bhavnagar", name_gu: "ભાવનગર", lat: 21.7716, lng: 72.1637, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Jamnagar", name_gu: "જામનગર", lat: 22.4707, lng: 70.0577, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Junagadh", name_gu: "જૂનાગઢ", lat: 21.5222, lng: 70.4579, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Gandhinagar", name_gu: "ગાંધીનગર", lat: 23.2156, lng: 72.6369, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Anand", name_gu: "આનંદ", lat: 22.5645, lng: 72.9289, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Nadiad", name_gu: "નડિયાદ", lat: 22.6916, lng: 72.8634, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Mehsana", name_gu: "મહેસાણા", lat: 23.5926, lng: 72.3809, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Bharuch", name_gu: "ભરૂચ", lat: 21.7051, lng: 72.9969, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Vapi", name_gu: "વાપી", lat: 20.3893, lng: 72.9096, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Gandhidham", name_gu: "ગાંધીધામ", lat: 23.0772, lng: 70.1304, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Bhuj", name_gu: "ભુજ", lat: 23.2420, lng: 69.6669, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Porbandar", name_gu: "પોરબંદર", lat: 21.6417, lng: 69.6293, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Veraval", name_gu: "વેરાવળ", lat: 20.9080, lng: 70.3685, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Morbi", name_gu: "મોરબી", lat: 22.8115, lng: 70.8378, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Patan", name_gu: "પાટણ", lat: 23.8512, lng: 72.1214, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Godhra", name_gu: "ગોધરા", lat: 22.7788, lng: 73.6143, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Navsari", name_gu: "નવસારી", lat: 20.9517, lng: 72.9377, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Valsad", name_gu: "વલસાડ", lat: 20.5992, lng: 72.9342, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Palanpur", name_gu: "પાલનપુર", lat: 24.1755, lng: 72.4317, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Surendranagar", name_gu: "સુરેન્દ્રનગર", lat: 22.7285, lng: 71.6375, state: "Gujarat", tz: "Asia/Kolkata" },
+  // Major India cities
+  { name_en: "Mumbai", name_gu: "મુંબઈ", lat: 19.0760, lng: 72.8777, state: "Maharashtra", tz: "Asia/Kolkata" },
+  { name_en: "Delhi", name_gu: "દિલ્હી", lat: 28.6139, lng: 77.2090, state: "Delhi", tz: "Asia/Kolkata" },
+  { name_en: "Pune", name_gu: "પુણે", lat: 18.5204, lng: 73.8567, state: "Maharashtra", tz: "Asia/Kolkata" },
+  { name_en: "Bengaluru", name_gu: "બેંગ્લોર", lat: 12.9716, lng: 77.5946, state: "Karnataka", tz: "Asia/Kolkata" },
+  { name_en: "Jaipur", name_gu: "જયપુર", lat: 26.9124, lng: 75.7873, state: "Rajasthan", tz: "Asia/Kolkata" },
+  { name_en: "Udaipur", name_gu: "ઉદયપુર", lat: 24.5854, lng: 73.7125, state: "Rajasthan", tz: "Asia/Kolkata" },
+  // Major International Cities
+  { name_en: "London", name_gu: "લંડન", lat: 51.5074, lng: -0.1278, state: "United Kingdom", tz: "Europe/London" },
+  { name_en: "New York", name_gu: "ન્યૂ યોર્ક", lat: 40.7128, lng: -74.0060, state: "USA", tz: "America/New_York" },
+  { name_en: "San Francisco", name_gu: "સેન ફ્રાન્સિસ્કો", lat: 37.7749, lng: -122.4194, state: "USA", tz: "America/Los_Angeles" },
+  { name_en: "Chicago", name_gu: "શિકાગો", lat: 41.8781, lng: -87.6298, state: "USA", tz: "America/Chicago" },
+  { name_en: "Toronto", name_gu: "ટોરોન્ટો", lat: 43.6532, lng: -79.3832, state: "Canada", tz: "America/Toronto" },
+  { name_en: "Vancouver", name_gu: "વેંકુવર", lat: 49.2827, lng: -123.1207, state: "Canada", tz: "America/Vancouver" },
+  { name_en: "Dubai", name_gu: "દુબઈ", lat: 25.2048, lng: 55.2708, state: "UAE", tz: "Asia/Dubai" },
+  { name_en: "Abu Dhabi", name_gu: "અબુ ધાબી", lat: 24.4539, lng: 54.3773, state: "UAE", tz: "Asia/Dubai" },
+  { name_en: "Riyadh", name_gu: "રિયાધ", lat: 24.7136, lng: 46.6753, state: "Saudi Arabia", tz: "Asia/Riyadh" },
+  { name_en: "Singapore", name_gu: "સિંગાપુર", lat: 1.3521, lng: 103.8198, state: "Singapore", tz: "Asia/Singapore" },
+  { name_en: "Sydney", name_gu: "સિડની", lat: -33.8688, lng: 151.2093, state: "Australia", tz: "Australia/Sydney" },
+  { name_en: "Melbourne", name_gu: "મેલબોર્ન", lat: -37.8136, lng: 144.9631, state: "Australia", tz: "Australia/Melbourne" },
+  { name_en: "Auckland", name_gu: "ઓકલેન્ડ", lat: -36.8485, lng: 174.7633, state: "New Zealand", tz: "Pacific/Auckland" },
+  { name_en: "Tokyo", name_gu: "ટોક્યો", lat: 35.6762, lng: 139.6503, state: "Japan", tz: "Asia/Tokyo" },
+  { name_en: "Bangkok", name_gu: "બેંગકોક", lat: 13.7563, lng: 100.5018, state: "Thailand", tz: "Asia/Bangkok" },
+  { name_en: "Paris", name_gu: "પેરિસ", lat: 48.8566, lng: 2.3522, state: "France", tz: "Europe/Paris" },
+  { name_en: "Frankfurt", name_gu: "ફ્રેન્કફર્ટ", lat: 50.1109, lng: 8.6821, state: "Germany", tz: "Europe/Berlin" },
 ];
+
+/**
+ * Finds the nearest matching city within a threshold distance (default 50 km) using Haversine distance.
+ */
+export function findNearestCity(lat: number, lng: number, thresholdKm = 50): CityDef | null {
+  let nearest: CityDef | null = null;
+  let minDistance = Infinity;
+
+  for (const city of CITIES) {
+    const dist = haversineDistance(lat, lng, city.lat, city.lng);
+    if (dist < minDistance && dist <= thresholdKm) {
+      minDistance = dist;
+      nearest = city;
+    }
+  }
+
+  return nearest;
+}
+

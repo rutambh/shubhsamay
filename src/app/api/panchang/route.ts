@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getTithi,
+  getTithiRange,
   getNakshatra,
   getYoga,
   getKarana,
@@ -26,10 +27,12 @@ export async function POST(req: NextRequest) {
       lat: body.lat,
       lng: body.lng,
       tzOffsetHours: body.tzOffsetHours ?? 5.5,
+      tz: body.tz,
     };
 
     // Compute panchang elements at the current moment
     const tithi = getTithi(now);
+    const tithiRange = getTithiRange(now);
     const nakshatra = getNakshatra(now);
     const yoga = getYoga(now);
     const karana = getKarana(now);
@@ -60,7 +63,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       now: now.toISOString(),
-      tithi,
+      tithi: {
+        ...tithi,
+        start: tithiRange.start.toISOString(),
+        end: tithiRange.end.toISOString(),
+      },
       nakshatra,
       yoga,
       karana,

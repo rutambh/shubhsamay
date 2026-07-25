@@ -36,7 +36,6 @@ yarn-error.log*
 # vercel
 .vercel
 
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -62,5 +61,7 @@ server.log
 # Process ID files
 *.pid
 
-# Secrets (never committed)
-docs/cicd/secrets/
+scratch/
+.vscode/
+docs/cicd/secrets/*
+!docs/cicd/secrets/README.md

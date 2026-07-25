@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, X, Clock, CalendarRange, CalendarDays, AlertCircle, Trash2 } from "lucide-react";
+import { X, Clock, CalendarRange, CalendarDays, AlertCircle, Trash2, Check } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
 import type { TimeWindow } from "@/lib/events";
 import { cn } from "@/lib/utils";
@@ -61,14 +61,19 @@ export function DateRangePicker({
   const [rangeStart, setRangeStart] = useState<Date | null>(null);
   const [rangeEnd, setRangeEnd] = useState<Date | null>(null);
   const [showTime, setShowTime] = useState(false);
+  const [pendingDate, setPendingDate] = useState<Date | undefined>(undefined);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   // === Individual mode handlers ===
-  const addDate = (d: Date | undefined) => {
-    if (!d) return;
-    const normalized = new Date(d);
+  const removeDate = (idx: number) => {
+    onChange(dates.filter((_, i) => i !== idx));
+  };
+
+  const confirmAddDate = () => {
+    if (!pendingDate) return;
+    const normalized = new Date(pendingDate);
     normalized.setHours(12, 0, 0, 0);
     const exists = dates.some(
       (x) => x.toDateString() === normalized.toDateString()
@@ -76,60 +81,26 @@ export function DateRangePicker({
     if (!exists) {
       onChange([...dates, normalized].sort((a, b) => a.getTime() - b.getTime()));
     }
-  };
-
-  const removeDate = (idx: number) => {
-    onChange(dates.filter((_, i) => i !== idx));
+    setPendingDate(undefined);
   };
 
   // === Range mode handlers ===
-  const handleRangeSelect = (d: Date | undefined) => {
-    if (!d) return;
-    const normalized = new Date(d);
-    normalized.setHours(12, 0, 0, 0);
+  const confirmRange = () => {
+    if (!rangeStart || !rangeEnd) return;
+    const start = rangeStart < rangeEnd ? rangeStart : rangeEnd;
+    const end = rangeStart < rangeEnd ? rangeEnd : rangeStart;
+    const normalizedStart = new Date(start);
+    const normalizedEnd = new Date(end);
+    normalizedStart.setHours(12, 0, 0, 0);
+    normalizedEnd.setHours(12, 0, 0, 0);
 
-    if (!rangeStart || (rangeStart && rangeEnd)) {
-      // Start new range
-      setRangeStart(normalized);
-      setRangeEnd(null);
-      onChange([normalized]);
-      return;
-    }
-    // We have a start, this is the end
-    if (normalized < rangeStart) {
-      // Swap if user picked earlier date
-      setRangeStart(normalized);
-      setRangeEnd(rangeStart);
-      buildRange(normalized, rangeStart);
-    } else {
-      setRangeEnd(normalized);
-      buildRange(rangeStart, normalized);
-    }
-  };
-
-  const buildRange = (start: Date, end: Date) => {
-    const span = differenceInCalendarDays(end, start);
-    if (span > 30) {
-      // Truncate to 30 days
-      const cappedEnd = new Date(start);
-      cappedEnd.setDate(cappedEnd.getDate() + 30);
-      setRangeEnd(cappedEnd);
-      fillRange(start, cappedEnd);
-      return;
-    }
-    fillRange(start, end);
-  };
-
-  const fillRange = (start: Date, end: Date) => {
-    const result: Date[] = [];
-    const cur = new Date(start);
-    while (cur <= end) {
-      const d = new Date(cur);
-      d.setHours(12, 0, 0, 0);
-      result.push(d);
+    const rangeDates: Date[] = [];
+    const cur = new Date(normalizedStart);
+    while (cur <= normalizedEnd) {
+      rangeDates.push(new Date(cur));
       cur.setDate(cur.getDate() + 1);
     }
-    onChange(result);
+    onChange(rangeDates.slice(0, 30));
   };
 
   // === Time window handlers ===
@@ -143,9 +114,23 @@ export function DateRangePicker({
 
   const rangeSpan =
     rangeStart && rangeEnd
-      ? differenceInCalendarDays(rangeEnd, rangeStart) + 1
+      ? differenceInCalendarDays(
+          rangeStart < rangeEnd ? rangeEnd : rangeStart,
+          rangeStart < rangeEnd ? rangeStart : rangeEnd
+        ) + 1
       : 0;
   const rangeTooLong = rangeSpan > 30;
+
+  const now = new Date();
+  const includesToday = dates.some((d) => d.toDateString() === now.toDateString());
+  const currentDecimalHour = includesToday
+    ? now.getHours() + Math.ceil(now.getMinutes() / 30) * 0.5
+    : 0;
+
+  const validFromOptions = TIME_OPTIONS.filter((o) => o.decimal >= currentDecimalHour);
+  const validToOptions = TIME_OPTIONS.filter(
+    (o) => o.decimal > (timeWindow?.startHour ?? currentDecimalHour)
+  );
 
   return (
     <div className="space-y-4">
@@ -154,7 +139,7 @@ export function DateRangePicker({
         <button
           onClick={() => {
             setMode("individual");
-            // Clear ALL state when switching tabs (previous tab's values)
+            setPendingDate(undefined);
             setRangeStart(null);
             setRangeEnd(null);
             onChange([]);
@@ -172,7 +157,7 @@ export function DateRangePicker({
         <button
           onClick={() => {
             setMode("range");
-            // Clear ALL state when switching tabs (previous tab's values)
+            setPendingDate(undefined);
             setRangeStart(null);
             setRangeEnd(null);
             onChange([]);
@@ -192,17 +177,15 @@ export function DateRangePicker({
       {/* Mode hint */}
       {mode === "individual" ? (
         <p className="text-xs text-muted-foreground text-center -mt-1">
-          {dates.length === 0
-            ? t("addDate")
-            : lang === "gu"
-            ? "વધુ તારીખો માટે કેલેન્ડર પર ટેપ કરો"
-            : "Tap the calendar to add more dates"}
+          {lang === "gu"
+            ? "તારીખ પસંદ કરો પછી ઉમેરો બટન દબાવો"
+            : "Select a date, then tap Add Date"}
         </p>
       ) : (
         <p className="text-xs text-muted-foreground text-center -mt-1">
           {lang === "gu"
-            ? "શરૂ અને અંતની તારીખ પસંદ કરો (અધિકતમ ૩૦ દિવસ)"
-            : "Pick start and end dates (max 30 days)"}
+            ? "શરૂ અને અંતની તારીખ પસંદ કરો"
+            : "Pick Start & End dates on the calendar"}
         </p>
       )}
 
@@ -216,51 +199,130 @@ export function DateRangePicker({
 
       {/* Calendar — always visible */}
       <Card className="p-3 border-primary/20 flex justify-center">
-        <Calendar
-          mode={mode === "individual" ? "single" : "range"}
-          selected={
-            mode === "individual"
-              ? undefined
-              : rangeStart && rangeEnd
-              ? { from: rangeStart, to: rangeEnd }
-              : rangeStart
-              ? { from: rangeStart, to: undefined }
-              : undefined
-          }
-          onSelect={(d) => {
-            if (mode === "individual") {
-              addDate(d as Date);
-            } else {
-              // For range mode, react-day-picker returns a Range
-              const range = d as { from?: Date; to?: Date } | undefined;
-              if (!range) return;
-              if (range.from && range.to) {
-                setRangeStart(range.from);
-                setRangeEnd(range.to);
-                buildRange(range.from, range.to);
-              } else if (range.from) {
-                setRangeStart(range.from);
-                setRangeEnd(null);
-                onChange([range.from]);
-              }
+        {mode === "individual" ? (
+          <Calendar
+            mode="single"
+            selected={pendingDate}
+            onSelect={(d) => setPendingDate(d || undefined)}
+            disabled={(d) => d < today}
+            initialFocus
+            className="mx-auto"
+            classNames={{
+              today: "ring-2 ring-primary/60 rounded-full font-semibold bg-transparent",
+            }}
+          />
+        ) : (
+          <Calendar
+            mode="range"
+            selected={
+              rangeStart && rangeEnd
+                ? { from: rangeStart < rangeEnd ? rangeStart : rangeEnd, to: rangeStart < rangeEnd ? rangeEnd : rangeStart }
+                : rangeStart
+                ? { from: rangeStart, to: undefined }
+                : undefined
             }
-          }}
-          disabled={(d) => d < today}
-          numberOfMonths={1}
-          initialFocus
-          className="mx-auto"
-          // Show today as outline circle only when no dates selected.
-          // Once a date is selected, remove today circle entirely.
-          modifiers={{
-            today: dates.length === 0 ? undefined : [],
-          }}
-          modifiersClassNames={{
-            today: "rdp-today-circle",
-          }}
-        />
+            onSelect={(d) => {
+              const range = d as { from?: Date; to?: Date } | undefined;
+              if (!range || !range.from) {
+                setRangeStart(null);
+                setRangeEnd(null);
+                onChange([]);
+                return;
+              }
+              const start = range.from;
+              const end = range.to || null;
+
+              setRangeStart(start);
+              setRangeEnd(end);
+
+              if (start && end) {
+                const normStart = new Date(start < end ? start : end);
+                const normEnd = new Date(start < end ? end : start);
+                normStart.setHours(12, 0, 0, 0);
+                normEnd.setHours(12, 0, 0, 0);
+
+                const rangeDates: Date[] = [];
+                const cur = new Date(normStart);
+                while (cur <= normEnd) {
+                  rangeDates.push(new Date(cur));
+                  cur.setDate(cur.getDate() + 1);
+                }
+                onChange(rangeDates.slice(0, 30));
+              } else {
+                // Only Start date selected: keep dates array EMPTY until End date is selected!
+                onChange([]);
+              }
+            }}
+            disabled={(d) => d < today}
+            numberOfMonths={1}
+            initialFocus
+            className="mx-auto"
+            classNames={{
+              today: "",
+            }}
+            modifiersClassNames={{
+              today: "rdp-today-circle",
+            }}
+          />
+        )}
       </Card>
 
-      {/* Clear button — Range mode only, icon only */}
+      {/* Add Date button (individual mode) */}
+      {mode === "individual" && pendingDate && (
+        <div className="flex justify-center">
+          <Button
+            onClick={confirmAddDate}
+            disabled={dates.some(
+              (d) => d.toDateString() === new Date(pendingDate).toDateString()
+            )}
+            variant="default"
+            size="sm"
+            className="gap-2"
+          >
+            <Check className="h-4 w-4" />
+            {dates.some(
+              (d) => d.toDateString() === new Date(pendingDate).toDateString()
+            )
+              ? t("alreadyAdded")
+              : t("addDate")}
+          </Button>
+        </div>
+      )}
+
+      {/* Add Range button & helper status — Date Range mode */}
+      {mode === "range" && (
+        <div className="flex flex-col items-center gap-2">
+          {/* Status helper text */}
+          <div className="text-xs font-medium text-center">
+            {rangeStart && rangeEnd ? (
+              <span className="text-emerald-600 dark:text-emerald-400">
+                ✓ {lang === "gu" ? "તારીખ સમયગાળો પસંદ થયો" : "Date Range Selected"}: {format(rangeStart < rangeEnd ? rangeStart : rangeEnd, "d MMM")} – {format(rangeStart < rangeEnd ? rangeEnd : rangeStart, "d MMM yyyy")} ({differenceInCalendarDays(rangeStart < rangeEnd ? rangeEnd : rangeStart, rangeStart < rangeEnd ? rangeStart : rangeEnd) + 1} {lang === "gu" ? "દિવસ" : "days"})
+              </span>
+            ) : rangeStart ? (
+              <span className="text-amber-600 dark:text-amber-400 font-semibold animate-pulse">
+                👉 {lang === "gu" ? "શરૂ તારીખ" : "Start Date"}: {format(rangeStart, "d MMM yyyy")} — {lang === "gu" ? "કૃપા કરીને અંતિમ તારીખ પસંદ કરો" : "Please select End Date"}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">
+                {lang === "gu" ? "કેલેન્ડર પર શરૂ અને અંતની તારીખ પસંદ કરો" : "Select Start and End dates on calendar"}
+              </span>
+            )}
+          </div>
+
+          <Button
+            onClick={confirmRange}
+            disabled={!rangeStart || !rangeEnd}
+            variant="default"
+            size="sm"
+            className="gap-2"
+          >
+            <Check className="h-4 w-4" />
+            {t("addRange")}
+          </Button>
+        </div>
+      )}
+
+      {/* Clear button — Range mode only when dates are selected */}
       {mode === "range" && dates.length > 0 && (
         <div className="flex justify-center">
           <Button
@@ -270,11 +332,11 @@ export function DateRangePicker({
               setRangeEnd(null);
             }}
             variant="ghost"
-            size="icon"
-            aria-label={lang === "gu" ? "સાફ કરો" : "Clear"}
-            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+            size="sm"
+            className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3.5 w-3.5" />
+            {lang === "gu" ? "સાફ કરો" : "Clear Range"}
           </Button>
         </div>
       )}
@@ -304,12 +366,8 @@ export function DateRangePicker({
               variant="secondary"
               className="gap-1.5 py-1.5 px-3 bg-accent/40 text-accent-foreground text-sm"
             >
-              <CalendarRange className="h-3.5 w-3.5" />
-              {rangeStart && rangeEnd
-                ? `${format(rangeStart, "d MMM")} – ${format(rangeEnd, "d MMM yyyy")} (${rangeSpan} days)`
-                : rangeStart
-                ? `${format(rangeStart, "d MMM yyyy")} (pick end date)`
-                : ""}
+              <CalendarRange className="h-3.5 w-3.5 shrink-0" />
+              {format(dates[0], "d MMM")} – {format(dates[dates.length - 1], "d MMM yyyy")} ({dates.length} {lang === "gu" ? "દિવસ" : "days"})
             </Badge>
           )}
         </div>
@@ -351,7 +409,7 @@ export function DateRangePicker({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
-                  {TIME_OPTIONS.map((o) => (
+                  {validFromOptions.map((o) => (
                     <SelectItem key={o.value} value={o.value}>
                       {o.label}
                     </SelectItem>
@@ -373,7 +431,7 @@ export function DateRangePicker({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
-                  {TIME_OPTIONS.map((o) => (
+                  {validToOptions.map((o) => (
                     <SelectItem key={o.value} value={o.value}>
                       {o.label}
                     </SelectItem>
@@ -387,8 +445,10 @@ export function DateRangePicker({
         <Button
           onClick={() => {
             setShowTime(true);
-            onTimeWindowChange({ startHour: 6, endHour: 21 });
+            const startH = Math.max(6, currentDecimalHour);
+            onTimeWindowChange({ startHour: startH, endHour: 21 });
           }}
+          disabled={dates.length === 0}
           variant="outline"
           className="w-full gap-2 border-dashed border-primary/40"
           size="sm"

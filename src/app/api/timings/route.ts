@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   findBestTimings,
   findBetterSuggestion,
+  findBestRecommendedTiming,
   resolveAutoMethods,
   EVENTS,
   type EventId,
@@ -10,19 +11,19 @@ import {
   type Tier,
   type SlotClassification,
 } from "@/lib/events";
-import type { Lang } from "@/lib/i18n";
 
 export interface TimingsRequest {
   event: EventId;
   methods: MethodId[];
   dates: string[];
-  city: { lat: number; lng: number; name_en: string; name_gu: string };
+  city: { lat: number; lng: number; name_en: string; name_gu: string; tz?: string };
   tzOffsetHours: number;
+  tz?: string;
   lang: Lang;
   timeWindow?: TimeWindow;
 }
 
-interface SlotResponse {
+export interface SlotResponse {
   start: string;
   end: string;
   tier: Tier;
@@ -38,6 +39,7 @@ export interface TimingsResponse {
   auspicious?: SlotResponse[];
   good?: SlotResponse[];
   resolvedMethods?: MethodId[];
+  bestRecommendation?: SlotResponse | null;
   suggestion?: {
     date: string;
     start: string;
@@ -94,6 +96,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<TimingsRespon
       lat: body.city.lat,
       lng: body.city.lng,
       tzOffsetHours: body.tzOffsetHours,
+      tz: body.city?.tz || body.tz,
     };
 
     // Get tiered results
@@ -112,14 +115,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<TimingsRespon
       method: s.method,
     });
 
-    // Suggestion
-    const suggestion = findBetterSuggestion(
-      dates,
-      body.event,
-      resolvedMethods,
-      loc,
-      0
-    );
+    // Compute Best Recommended Timing (evaluates ALL methods, restricts to highly & auspicious only)
+    const bestRec = findBestRecommendedTiming(dates, body.event, loc, {
+      timeWindow: body.timeWindow,
+    });
 
     return NextResponse.json({
       ok: true,
@@ -127,20 +126,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<TimingsRespon
       auspicious: tiered.auspicious.map(mapSlot),
       good: tiered.good.map(mapSlot),
       resolvedMethods,
-      suggestion: suggestion
-        ? {
-            date: suggestion.date.toISOString(),
-            start: suggestion.start.toISOString(),
-            end: suggestion.end.toISOString(),
-            tier: suggestion.tier,
-            label_en: suggestion.label_en,
-            label_gu: suggestion.label_gu,
-            vara_en: suggestion.vara_en,
-            vara_gu: suggestion.vara_gu,
-            favorableVaras_en: suggestion.favorableVaras_en,
-            favorableVaras_gu: suggestion.favorableVaras_gu,
-          }
-        : null,
+      bestRecommendation: bestRec ? mapSlot(bestRec) : null,
       eventDef,
     });
   } catch (err) {
