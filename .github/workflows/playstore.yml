@@ -82,10 +82,12 @@ jobs:
           name: app-release-signed
           path: android-app/build/outputs/bundle/release/*.aab
 
-      - name: Upload AAB to Play Store (Production Track)
+      - name: Upload AAB to Play Store (Internal Testing Track)
         uses: r0adkll/upload-google-play@v1.1.3
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: com.rutambh.shubhsamay
           releaseFiles: android-app/build/outputs/bundle/release/*.aab
-          track: production
+          track: internal
+          status: completed
+          whatsNewDirectory: whatsnew
