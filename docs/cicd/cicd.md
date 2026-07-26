@@ -7,17 +7,17 @@
 - Keystore: `rutambhapps.jks`
 - Keystore alias: `com.rutambh.shubhsamay`
 - Package name: `com.rutambh.shubhsamay`
-- Pipeline: GitHub Actions (`.github/workflows/playstore.yml`) → signed AAB → Play Store (Internal Track)
+- Pipeline: GitHub Actions (`.github/workflows/playstore.yml`) → signed AAB → Play Store (Production Track)
 
 ## Configured Workflow
 Workflow File: `.github/workflows/playstore.yml`
 - Triggers on push to `main` branch or manual execution (`workflow_dispatch`).
 - Verifies Next.js web application (`npm run lint` & `npm run build`).
 - Sets up Java 17 and Android SDK.
-- **Automatically increments `versionCode`** using `${{ github.run_number }}` in `app/build.gradle` on every run.
+- **Automatically increments `versionCode`** using `${{ github.run_number }}` in `twa-manifest.json` / `android-app/build.gradle` on every run.
 - Builds Android App Bundle via `./gradlew bundleRelease`.
-- Signs `.aab` using `r0adkll/sign-android-release@v1`.
-- Deploys `.aab` to Google Play Store internal track via `r0adkll/upload-google-play@v1` with release notes from `whatsnew/`.
+- Signs `.aab` using keystore secrets.
+- Deploys `.aab` to Google Play Store Production track via `r0adkll/upload-google-play@v1` with release notes from `whatsnew/`.
 
 ## Repository Secret Names
 Configure these in GitHub Repository Settings (`Settings -> Secrets and variables -> Actions`):

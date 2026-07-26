@@ -57,9 +57,23 @@ Append-only log of feature and architecture improvements across the project life
 ## 2026-07-25 — Results View Typography Optimization: Increased Time Font Size & Weight
 ## 2026-07-25 — Multi-Method Engine: All-Methods Best Recommended Timing Calculation & Strict Tier Rule
 ## 2026-07-25 — Color-Coded ClassChips in Best Recommended Timing Card
-## 2026-07-25 — UI Alignment: Vertical Centering of Auspicious and Good Tile Titles
-**Improvement:** Wrapped tile titles in a fixed-height `min-h-[26px]` flexbox container centered vertically and horizontally.  
-**Result:** Perfect visual symmetry and vertical alignment across single-line (`AUSPICIOUS`, `GOOD`) and multi-line (`HIGHLY AUSPICIOUS`) tile headers.
+## 2026-07-26 — App Icon Assets, Panchang Spinner Loading State & Local Storage Caching
+**Improvement:** 
+1. Replaced all app icon assets (`public/logo.png`, `icon-192.png`, `icon-512.png`, `apple-icon.png`, `store_icon.png`, and Android `ic_launcher` resources) with the new `unnamed.png` brand icon.
+2. Updated `PanchangToday` loading UI to display an explicit spinning `Loader2` icon with localized text (`(Loader) Today's Panchang` / `(Loader) આજનું પંચાંગ`).
+3. Added `localStorage` caching (`shubh_samay_panchang_${city}_${date}`) on mount for 0ms instant Panchang display on subsequent app launches with background revalidation.
+**Result:** Instant PWA app launch, offline readiness, and clear loading UX.
+
+## 2026-07-26 — Best Recommended Timing Card & Results View "Change date and time" Direct Step Jump
+**Improvement:** Added `"Change date and time"` (`"તારીખ અને સમય બદલો"`) button to `ResultsView` in two contexts:
+- **CASE 1 (Results Available)**: Placed right beneath the Best Recommended timing card to let users jump straight back to Step 3 (Choose Date & Time) without losing their chosen event or methods.
+- **CASE 2 (No Timings Available)**: Rendered prominently in the center of the empty result grid alongside friendly guidance and "Start Over".
+**Result:** Streamlined navigation, zero extra clicks to tweak date ranges, and improved conversion flow when scanning auspicious timings.
+
+## 2026-07-26 — Best Timings Page UI Clean-Up: Removal of Duplicate Home Button
+**Improvement:** Removed the extra Home button from the bottom of the Results (`Best Timings`) page in `src/app/page.tsx`. Since "Start Over" and "Change date and time" buttons are already rendered inside `ResultsView`, eliminating the bottom Home button prevents UI duplication. Maintained the Home icon button for Method and Dates steps.  
+**Result:** Cleaner Results layout without button clutter.
+
 
 
 

@@ -13,6 +13,7 @@ import {
   RotateCcw,
   AlertCircle,
   CheckCircle2,
+  CalendarClock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Tier, SlotClassification, MethodId } from "@/lib/events";
@@ -52,6 +53,7 @@ interface Props {
   error: string | null;
   eventName?: string;
   onReset: () => void;
+  onChangeDateAndTime?: () => void;
 }
 
 export function ResultsView({
@@ -63,6 +65,7 @@ export function ResultsView({
   error,
   eventName,
   onReset,
+  onChangeDateAndTime,
 }: Props) {
   const { lang, t } = useLang();
   const defaultTier: Tier | null =
@@ -100,26 +103,43 @@ export function ResultsView({
 
   const total = highly.length + auspicious.length + good.length;
 
+  // CASE 2: No good timings available -> Show button in middle of result grid with message
   if (total === 0) {
     return (
       <div className="space-y-4">
-        <Card className="p-6 text-center border-dashed">
-          <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-foreground font-medium mb-1">
-            {lang === "gu"
-              ? "આ તારીખોમાં કોઈ શુભ સમય મળ્યો નથી."
-              : "No auspicious slots found on these dates."}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {lang === "gu"
-              ? "બીજી તારીખો અથવા સમય સીમા અજમાવો."
-              : "Try different dates or a wider time window."}
-          </p>
+        <Card className="p-6 text-center border-dashed bg-card/80 space-y-4">
+          <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto" />
+          <div className="space-y-1">
+            <p className="text-foreground font-bold text-base">
+              {lang === "gu"
+                ? "આ તારીખોમાં કોઈ શુભ સમય મળ્યો નથી."
+                : "No auspicious slots found on these dates."}
+            </p>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              {lang === "gu"
+                ? "બીજી તારીખો અથવા સમય સીમા અજમાવીને ઉત્તમ શુભ મુહૂર્ત શોધો."
+                : "Try selecting different dates or a wider time window to find auspicious timings."}
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+            <Button
+              onClick={onChangeDateAndTime || onReset}
+              className="w-full sm:w-auto gap-2 font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+            >
+              <CalendarClock className="h-4 w-4" />
+              {lang === "gu" ? "તારીખ અને સમય બદલો" : "Change date and time"}
+            </Button>
+            <Button
+              onClick={onReset}
+              variant="outline"
+              className="w-full sm:w-auto gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              {t("startOver")}
+            </Button>
+          </div>
         </Card>
-        <Button onClick={onReset} variant="outline" className="w-full gap-2">
-          <RotateCcw className="h-4 w-4" />
-          {t("startOver")}
-        </Button>
       </div>
     );
   }
@@ -144,7 +164,7 @@ export function ResultsView({
 
       {/* Compact Best Recommended Timing Card */}
       {topSlot && (
-        <Card className="p-2.5 sm:p-3 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-primary/5 to-card shadow-2xs space-y-1.5">
+        <Card className="p-2.5 sm:p-3 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-primary/5 to-card shadow-2xs space-y-2">
           <div className="flex items-center justify-between gap-1.5">
             <div className="flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse shrink-0" />
@@ -221,7 +241,35 @@ export function ResultsView({
               inactive={topSlot.classification.muhurat ? !topSlot.classification.muhurat.active : undefined}
             />
           </div>
+
+          {/* CASE 1: Results are visible -> Add "Change date and time" button right under Best Recommended timing card */}
+          <div className="pt-1 flex justify-end">
+            <Button
+              onClick={onChangeDateAndTime || onReset}
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs font-bold gap-1.5 border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/10 shadow-2xs"
+            >
+              <CalendarClock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              {lang === "gu" ? "તારીખ અને સમય બદલો" : "Change date and time"}
+            </Button>
+          </div>
         </Card>
+      )}
+
+      {/* If no topSlot but total > 0, show button at top of results grid */}
+      {!topSlot && total > 0 && (
+        <div className="flex justify-end pb-1">
+          <Button
+            onClick={onChangeDateAndTime || onReset}
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs font-bold gap-1.5 border-primary/30 text-primary hover:bg-primary/5 shadow-2xs"
+          >
+            <CalendarClock className="h-3.5 w-3.5 text-primary" />
+            {lang === "gu" ? "તારીખ અને સમય બદલો" : "Change date and time"}
+          </Button>
+        </div>
       )}
 
       {/* Tiles — radio-style (one selected at a time) */}

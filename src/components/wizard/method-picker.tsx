@@ -14,18 +14,21 @@ import { Sparkles } from "lucide-react";
 
 interface Props {
   eventId: EventId | null;
-  value: MethodId[];
-  onChange: (methods: MethodId[]) => void;
+  value?: MethodId[];
+  selected?: MethodId[];
+  onChange?: (methods: MethodId[]) => void;
 }
 
-export function MethodPicker({ eventId, value, onChange }: Props) {
+export function MethodPicker({ eventId, value, selected, onChange }: Props) {
   const { lang } = useLang();
+  const currentMethods = value ?? selected ?? [];
   const autoMethods = eventId ? resolveAutoMethods(eventId) : [];
 
   const toggle = (id: MethodId) => {
+    if (!onChange) return;
     // "auto" and "all" are meta-methods that replace other selections
     if (id === "auto" || id === "all") {
-      if (value.includes(id)) {
+      if (currentMethods.includes(id)) {
         onChange([]);
       } else {
         onChange([id]);
@@ -33,7 +36,7 @@ export function MethodPicker({ eventId, value, onChange }: Props) {
       return;
     }
     // For concrete methods: remove "auto"/"all" if present, toggle this one
-    const withoutMeta = value.filter((m) => m !== "auto" && m !== "all");
+    const withoutMeta = currentMethods.filter((m) => m !== "auto" && m !== "all");
     if (withoutMeta.includes(id)) {
       onChange(withoutMeta.filter((m) => m !== id));
     } else {
@@ -45,7 +48,7 @@ export function MethodPicker({ eventId, value, onChange }: Props) {
     <div className="space-y-2">
       <div className="grid grid-cols-2 gap-2">
         {METHODS.map((m) => {
-          const selected = value.includes(m.id);
+          const isSelected = currentMethods.includes(m.id);
           // For "auto", show which methods it combines (inside the tile)
           let combinedLabel: string | null = null;
           if (m.id === "auto" && autoMethods.length > 0) {
@@ -69,11 +72,11 @@ export function MethodPicker({ eventId, value, onChange }: Props) {
                   toggle(m.id);
                 }
               }}
-              aria-pressed={selected}
+              aria-pressed={isSelected}
               className={cn(
                 "cursor-pointer p-3 transition-all text-center flex flex-col items-center justify-center gap-1",
                 "min-h-[88px]",
-                selected
+                isSelected
                   ? "border-primary ring-2 ring-primary/30 bg-accent/40"
                   : "border-border bg-card/80 hover:bg-muted/40"
               )}
@@ -104,12 +107,12 @@ export function MethodPicker({ eventId, value, onChange }: Props) {
 
       <p className="text-xs text-muted-foreground text-center pt-1">
         {lang === "gu"
-          ? value.length === 0
+          ? currentMethods.length === 0
             ? "ઓછામાં ઓછી એક પદ્ધતિ પસંદ કરો"
-            : `${value.length} પદ્ધતિ${value.length > 1 ? "ઓ" : ""} પસંદ થયેલી છે`
-          : value.length === 0
+            : `${currentMethods.length} પદ્ધતિ${currentMethods.length > 1 ? "ઓ" : ""} પસંદ થયેલી છે`
+          : currentMethods.length === 0
           ? "Select at least one method to continue"
-          : `${value.length} method${value.length > 1 ? "s" : ""} selected`}
+          : `${currentMethods.length} method${currentMethods.length > 1 ? "s" : ""} selected`}
       </p>
     </div>
   );

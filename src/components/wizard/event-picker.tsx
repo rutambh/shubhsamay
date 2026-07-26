@@ -6,12 +6,18 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  value: EventId | null;
-  onChange: (id: EventId) => void;
+  value?: EventId | null;
+  onChange?: (id: EventId) => void;
+  onSelect?: (id: EventId) => void;
 }
 
-export function EventPicker({ value, onChange }: Props) {
+export function EventPicker({ value, onChange, onSelect }: Props) {
   const { lang } = useLang();
+
+  const handleSelect = (id: EventId) => {
+    onChange?.(id);
+    onSelect?.(id);
+  };
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -23,11 +29,11 @@ export function EventPicker({ value, onChange }: Props) {
             key={ev.id}
             role="button"
             tabIndex={0}
-            onClick={() => onChange(ev.id)}
+            onClick={() => handleSelect(ev.id)}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                onChange(ev.id);
+                handleSelect(ev.id);
               }
             }}
             aria-pressed={selected}

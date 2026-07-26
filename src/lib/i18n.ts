@@ -34,6 +34,7 @@ export const STRINGS = {
   back: { en: "Back", gu: "પાછળ" },
   findTimings: { en: "Find Auspicious Timings", gu: "શુભ સમય શોધો" },
   startOver: { en: "Start Over", gu: "ફરી શરૂ કરો" },
+  changeDateAndTime: { en: "Change date and time", gu: "તારીખ અને સમય બદલો" },
   addDate: { en: "Add Date", gu: "તારીખ ઉમેરો" },
   addAnotherDate: { en: "Add Another Date", gu: "બીજી તારીખ ઉમેરો" },
   addTime: { en: "Add Time Window", gu: "સમય સીમા ઉમેરો" },

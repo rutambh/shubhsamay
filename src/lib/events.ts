@@ -734,17 +734,11 @@ export function classifySlot(
   if (muhuratOnlyMethod) {
     // If Muhurat is the ONLY selected method:
     // Active Special Muhurats dictate Highly or Auspicious tier.
-    // Non-Special-Muhurat slots default to "good".
+    // Slots without an active Special Muhurat are disqualified (avoid).
     if (classification.muhurat?.active) {
       overallTier = classification.muhurat.tier;
     } else {
-      classification.muhurat = {
-        name_en: "General Timing",
-        name_gu: "સામાન્ય સમય",
-        tier: "good",
-        active: false,
-      };
-      overallTier = "good";
+      overallTier = "avoid";
     }
   } else {
     // If any active selected category is "avoid", tier is "avoid"

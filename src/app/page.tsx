@@ -311,13 +311,22 @@ function ShubhSamayApp() {
       {/* Header */}
       <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-border/60 shadow-2xs">
         <div className="max-w-2xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
-          <div className="leading-tight min-w-0 flex-1">
-            <h1 className="font-bold text-base sm:text-lg text-foreground truncate">
-              {lang === "gu" ? "આજનું પંચાંગ" : "Today's Panchang"}
-            </h1>
-            <p className="text-xs font-semibold text-primary/95 truncate pt-0.5">
-              {formatHeaderDateTime(now, lang, IST_OFFSET, city?.tz)}
-            </p>
+          <div className="flex items-center gap-2.5 leading-tight min-w-0 flex-1">
+            <Image
+              src="/logo.png"
+              alt="Shubh Samay Logo"
+              width={36}
+              height={36}
+              className="rounded-lg shrink-0 border border-primary/20 shadow-2xs"
+            />
+            <div className="min-w-0 flex-1">
+              <h1 className="font-bold text-base sm:text-lg text-foreground truncate">
+                {lang === "gu" ? "આજનું પંચાંગ" : "Today's Panchang"}
+              </h1>
+              <p className="text-xs font-semibold text-primary/95 truncate pt-0.5">
+                {formatHeaderDateTime(now, lang, IST_OFFSET, city?.tz)}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <LocationSearch
@@ -352,40 +361,59 @@ function ShubhSamayApp() {
           </div>
         )}
 
-        {/* Step header */}
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            {stepMeta[step].icon}
+        {/* Step card */}
+        <Card className="p-4 sm:p-6 shadow-md border-border/80 bg-card/95 backdrop-blur space-y-4">
+          {/* Step header */}
+          <div className="flex items-center justify-between border-b border-border/60 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                {stepMeta[step].icon}
+              </div>
+              <div>
+                <h2 className="font-bold text-base sm:text-lg text-foreground">
+                  {stepMeta[step].title}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {stepMeta[step].desc}
+                </p>
+              </div>
+            </div>
+            {step !== "event" && step !== "results" && (
+              <span className="text-xs font-semibold text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                {t("step")} {stepIdx + 1} / 3
+              </span>
+            )}
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-              {t("step")} {stepIdx + 1} / {STEP_ORDER.length}
-            </p>
-            <h2 className="text-lg font-bold text-foreground">
-              {stepMeta[step].title}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {stepMeta[step].desc}
-            </p>
-          </div>
-        </div>
 
-        {/* Step content */}
-        <Card className="p-5 bg-card/80 backdrop-blur">
+          {/* Step body */}
           {step === "event" && (
-            <EventPicker value={eventId} onChange={handleEventSelect} />
+            <EventPicker
+              value={eventId}
+              onChange={handleEventSelect}
+              onSelect={handleEventSelect}
+            />
           )}
+
           {step === "method" && (
-            <MethodPicker eventId={eventId} value={methods} onChange={setMethods} />
+            <MethodPicker
+              value={methods}
+              selected={methods}
+              onChange={setMethods}
+              eventId={eventId}
+            />
           )}
+
           {step === "dates" && (
             <DateRangePicker
               dates={dates}
+              selectedDates={dates}
               onChange={setDates}
+              onDatesChange={setDates}
               timeWindow={timeWindow}
               onTimeWindowChange={setTimeWindow}
             />
           )}
+
           {step === "results" && (
             <ResultsView
               highly={highlySlots}
@@ -402,25 +430,10 @@ function ShubhSamayApp() {
                   : undefined
               }
               onReset={reset}
+              onChangeDateAndTime={() => setStep("dates")}
             />
           )}
         </Card>
-
-        {/* Home button on results page */}
-        {step === "results" && (
-          <div className="flex justify-center pt-1">
-            <Button
-              onClick={reset}
-              variant="ghost"
-              size="sm"
-              aria-label={t("home")}
-              className="gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <Home className="h-4 w-4" />
-              {t("home")}
-            </Button>
-          </div>
-        )}
 
         {/* Selection summary chips */}
         {step !== "results" && step !== "event" && (

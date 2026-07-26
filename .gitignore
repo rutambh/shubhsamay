@@ -69,5 +69,5 @@ docs/cicd/secrets/*
 # Gradle build caches & temporary build outputs
 .gradle/
 /build/
-app/build/
+android-app/build/
 *.jks

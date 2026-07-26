@@ -8,6 +8,7 @@ import type { ChoghadiyaQuality } from "@/lib/time-divisions";
 import type { Tier, CityDef } from "@/lib/events";
 import { classifyYoga } from "@/lib/events";
 import { formatTzTime } from "@/lib/i18n";
+import { Loader2 } from "lucide-react";
 import { SunTrackerCard } from "@/components/wizard/sun-tracker-card";
 
 interface PanchangData {
@@ -53,6 +54,26 @@ export function PanchangToday({ city, tzOffsetHours }: Props) {
   const [data, setData] = useState<PanchangData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Try reading from cache immediately on mount / city change
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const locName = city?.name_en || "Ahmedabad";
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const cacheKey = `shubh_samay_panchang_${locName}_${todayStr}`;
+      const saved = localStorage.getItem(cacheKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.ok) {
+          setData(parsed);
+          setLoading(false);
+        }
+      }
+    } catch {
+      // Ignore cache read errors
+    }
+  }, [city]);
+
   const fetchData = useCallback(async () => {
     const loc = city || {
       lat: 23.0225,
@@ -76,6 +97,14 @@ export function PanchangToday({ city, tzOffsetHours }: Props) {
       const d = await res.json();
       if (d.ok) {
         setData(d);
+        // Persist in local storage for 0ms instant display on future app opens
+        try {
+          const todayStr = new Date().toISOString().slice(0, 10);
+          const cacheKey = `shubh_samay_panchang_${loc.name_en}_${todayStr}`;
+          localStorage.setItem(cacheKey, JSON.stringify(d));
+        } catch {
+          // Ignore cache write errors
+        }
       }
     } catch {
       // ignore
@@ -98,17 +127,18 @@ export function PanchangToday({ city, tzOffsetHours }: Props) {
     };
   }, [fetchData]);
 
-  if (loading || !data) {
+  if (loading && !data) {
     return (
-      <Card className="p-3 sm:p-4 animate-pulse bg-card/60">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-14 bg-muted rounded-lg" />
-          ))}
+      <Card className="p-4 sm:p-5 bg-card/90 backdrop-blur border-primary/25 shadow-xs flex items-center justify-center min-h-[120px]">
+        <div className="flex items-center gap-2.5 text-foreground font-bold text-sm sm:text-base tracking-wide">
+          <Loader2 className="h-5 w-5 animate-spin text-primary shrink-0" />
+          <span>{lang === "gu" ? "આજનું પંચાંગ" : "Today's Panchang"}</span>
         </div>
       </Card>
     );
   }
+
+  if (!data) return null;
 
   const targetTz = city?.tz;
 

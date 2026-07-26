@@ -80,13 +80,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release-signed
-          path: app/build/outputs/bundle/release/app-release.aab
+          path: android-app/build/outputs/bundle/release/app-release.aab
 
-      - name: Upload AAB to Play Store (Internal Track)
+      - name: Upload AAB to Play Store (Production Track)
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: com.rutambh.shubhsamay
-          releaseFiles: app/build/outputs/bundle/release/app-release.aab
-          track: internal
+          releaseFiles: android-app/build/outputs/bundle/release/app-release.aab
+          track: production
           whatsNewDirectory: whatsnew

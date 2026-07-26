@@ -50,6 +50,13 @@ def twaManifest = [
     orientation: 'portrait',
 ]
 
+import groovy.json.JsonSlurper
+
+def twaManifestFile = file('../twa-manifest.json')
+def twaManifestObj = twaManifestFile.exists() ? new JsonSlurper().parse(twaManifestFile) : null
+def computedVersionCode = System.getenv("VERSION_CODE") ? System.getenv("VERSION_CODE").toInteger() : (twaManifestObj?.appVersionCode ? twaManifestObj.appVersionCode.toInteger() : 1)
+def computedVersionName = twaManifestObj?.appVersionName ?: "1.0.0"
+
 android {
     compileSdkVersion 36
     namespace "com.rutambh.shubhsamay"
@@ -57,8 +64,8 @@ android {
         applicationId "com.rutambh.shubhsamay"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 1
-        versionName "1.0.0"
+        versionCode computedVersionCode
+        versionName computedVersionName
 
         // The name for the application
         resValue "string", "appName", twaManifest.name

@@ -21,8 +21,10 @@ import { cn } from "@/lib/utils";
 type DateMode = "individual" | "range";
 
 interface Props {
-  dates: Date[];
-  onChange: (dates: Date[]) => void;
+  dates?: Date[];
+  selectedDates?: Date[];
+  onChange?: (dates: Date[]) => void;
+  onDatesChange?: (dates: Date[]) => void;
   timeWindow: TimeWindow | null;
   onTimeWindowChange: (tw: TimeWindow | null) => void;
 }
@@ -51,12 +53,19 @@ function toTimeValue(decimal: number): string {
 }
 
 export function DateRangePicker({
-  dates,
+  dates: datesProp,
+  selectedDates,
   onChange,
+  onDatesChange,
   timeWindow,
   onTimeWindowChange,
 }: Props) {
   const { lang, t } = useLang();
+  const dates = datesProp ?? selectedDates ?? [];
+  const setDates = (newDates: Date[]) => {
+    onChange?.(newDates);
+    onDatesChange?.(newDates);
+  };
   const [mode, setMode] = useState<DateMode>("individual");
   const [rangeStart, setRangeStart] = useState<Date | null>(null);
   const [rangeEnd, setRangeEnd] = useState<Date | null>(null);
@@ -68,7 +77,7 @@ export function DateRangePicker({
 
   // === Individual mode handlers ===
   const removeDate = (idx: number) => {
-    onChange(dates.filter((_, i) => i !== idx));
+    setDates(dates.filter((_, i) => i !== idx));
   };
 
   const confirmAddDate = () => {
@@ -79,7 +88,7 @@ export function DateRangePicker({
       (x) => x.toDateString() === normalized.toDateString()
     );
     if (!exists) {
-      onChange([...dates, normalized].sort((a, b) => a.getTime() - b.getTime()));
+      setDates([...dates, normalized].sort((a, b) => a.getTime() - b.getTime()));
     }
     setPendingDate(undefined);
   };
@@ -100,7 +109,7 @@ export function DateRangePicker({
       rangeDates.push(new Date(cur));
       cur.setDate(cur.getDate() + 1);
     }
-    onChange(rangeDates.slice(0, 30));
+    setDates(rangeDates.slice(0, 30));
   };
 
   // === Time window handlers ===
@@ -142,7 +151,7 @@ export function DateRangePicker({
             setPendingDate(undefined);
             setRangeStart(null);
             setRangeEnd(null);
-            onChange([]);
+            setDates([]);
           }}
           className={cn(
             "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-all",
@@ -160,7 +169,7 @@ export function DateRangePicker({
             setPendingDate(undefined);
             setRangeStart(null);
             setRangeEnd(null);
-            onChange([]);
+            setDates([]);
           }}
           className={cn(
             "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-all",
