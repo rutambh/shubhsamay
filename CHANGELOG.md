@@ -3,7 +3,8 @@
 Working log for task summaries per Section 8.3 of the Master Prompt protocol. Entries here are merged into permanent documentation files upon request.
 
 ## [2026-07-26] — CI/CD Play Store Production Release & Build Fix
-- **MINOR update**: Updated `.github/workflows/playstore.yml` to deploy signed AAB directly to Google Play Store **Production Track**.
+- **MINOR fix**: Fixed AAB file path mismatch in `.github/workflows/playstore.yml` by updating `path` and `releaseFiles` to `android-app/build/outputs/bundle/release/*.aab` (matching Gradle's `android-app-release.aab` output).
+- Updated `.github/workflows/playstore.yml` to deploy signed AAB directly to Google Play Store **Production Track**.
 - Updated `android-app/build.gradle` to dynamically compute `versionCode` from `twa-manifest.json` / `VERSION_CODE` environment variable so GitHub Actions auto-increments build numbers on every release run.
 - Configured `eslint.config.mjs` to ignore `scratch/**` and updated `docs/cicd/cicd.md` documentation.
 - Verified clean build (`npm run build`) and lint checks (`npm run lint`).

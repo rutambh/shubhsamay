@@ -42,4 +42,10 @@
 - **Cause:** Allows direct download of compiled and signed `app-release.aab` from GitHub Actions summary tab.
 - **Fix:** Added `actions/upload-artifact@v4` step targeting `app/build/outputs/bundle/release/app-release.aab`.
 
+## [2026-07-26] Unable to find any release file matching app-release.aab
+- **Error:** `Unable to find any release file matching android-app/build/outputs/bundle/release/app-release.aab`
+- **Cause:** Because Gradle subproject is named `android-app` (via `include ':android-app'`), Gradle outputs `android-app-release.aab` instead of `app-release.aab`.
+- **Fix:** Updated `path` and `releaseFiles` patterns in `.github/workflows/playstore.yml` to `android-app/build/outputs/bundle/release/*.aab`.
+
+
 
