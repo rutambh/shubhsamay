@@ -17,7 +17,7 @@ Workflow File: `.github/workflows/playstore.yml`
 - **Automatically increments `versionCode`** using `${{ github.run_number }}` in `app/build.gradle` on every run.
 - Builds Android App Bundle via `./gradlew bundleRelease`.
 - Signs `.aab` using `r0adkll/sign-android-release@v1`.
-- Deploys `.aab` to Google Play Store internal track via `r0adkll/upload-google-play@v1`.
+- Deploys `.aab` to Google Play Store internal track via `r0adkll/upload-google-play@v1` with release notes from `whatsnew/`.
 
 ## Repository Secret Names
 Configure these in GitHub Repository Settings (`Settings -> Secrets and variables -> Actions`):
