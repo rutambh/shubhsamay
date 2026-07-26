@@ -1,6 +1,6 @@
 {
   "packageId": "com.rutambh.shubhsamay",
-  "host": "shubhsamay.app",
+  "host": "raw.githubusercontent.com",
   "name": "Shubh Samay",
   "launcherName": "Shubh Samay",
   "display": "standalone",
@@ -8,9 +8,9 @@
   "navigationColor": "#8B1E3F",
   "backgroundColor": "#FFF8F0",
   "enableNotifications": false,
-  "startUrl": "/",
-  "iconUrl": "https://shubhsamay.app/icon-512.png",
-  "maskableIconUrl": "https://shubhsamay.app/icon-512.png",
+  "startUrl": "/rutambh/shubhsamay/main/public/",
+  "iconUrl": "https://raw.githubusercontent.com/rutambh/shubhsamay/main/public/icon-512.png",
+  "maskableIconUrl": "https://raw.githubusercontent.com/rutambh/shubhsamay/main/public/icon-512.png",
   "appVersionName": "1.0.0",
   "appVersionCode": 1,
   "signingKey": {
@@ -19,7 +19,7 @@
   },
   "appVersion": "1.0.0",
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://shubhsamay.app/manifest.webmanifest",
+  "webManifestUrl": "https://raw.githubusercontent.com/rutambh/shubhsamay/main/public/manifest.webmanifest",
   "fallbackType": "customtabs",
   "features": {},
   "alphaDependencies": {
