@@ -54,6 +54,16 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > rutambhapps.jks
 
+      - name: Configure Bubblewrap Environment
+        run: |
+          mkdir -p ~/.bubblewrap
+          cat <<EOF > ~/.bubblewrap/config.json
+          {
+            "jdkPath": "$JAVA_HOME",
+            "androidSdkPath": "$ANDROID_HOME"
+          }
+          EOF
+
       - name: Build Signed Android App Bundle (AAB)
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -61,7 +71,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           ALIAS="${KEY_ALIAS:-com.rutambh.shubhsamay}"
-          npx @bubblewrap/cli build --signingKeyPath=./rutambhapps.jks --signingKeyAlias="$ALIAS" --signingKeyPassword="$KEY_PASSWORD" --keyStorePassword="$KEYSTORE_PASSWORD"
+          yes 'n' | npx @bubblewrap/cli build --signingKeyPath=./rutambhapps.jks --signingKeyAlias="$ALIAS" --signingKeyPassword="$KEY_PASSWORD" --keyStorePassword="$KEYSTORE_PASSWORD"
 
       - name: Upload AAB to Play Store (Internal Track)
         uses: r0adkll/upload-google-play@v1

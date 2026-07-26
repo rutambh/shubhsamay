@@ -22,3 +22,8 @@
 - **Cause:** `package.json` build script used Windows-specific `powershell` command to copy standalone files.
 - **Fix:** Replaced `powershell` command in `package.json` with cross-platform Node.js `fs.cpSync` script that works identically on Windows, Linux, and macOS.
 
+## [2026-07-26] Bubblewrap JDK interactive prompt in headless CI
+- **Error:** `? Do you want Bubblewrap to install the JDK (recommended)? (exit code 130)`
+- **Cause:** `@bubblewrap/cli build` requested interactive user confirmation to configure JDK path on headless runner.
+- **Fix:** Pre-created `~/.bubblewrap/config.json` with `jdkPath` ($JAVA_HOME) and `androidSdkPath` ($ANDROID_HOME) and piped `yes 'n'` to build non-interactively.
+
