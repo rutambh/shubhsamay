@@ -12,3 +12,8 @@
 - **Cause:** Action `rskress/play-store-api-action` was missing or non-existent in GitHub Marketplace.
 - **Fix:** Switched to `r0adkll/upload-google-play@v1`, the official standard GitHub Action for Google Play Store uploads with `serviceAccountJsonPlainText`, `packageName`, `releaseFiles`, `track`, and `status`.
 
+## [2026-07-26] npm ci package-lock.json out of sync
+- **Error:** `npm error 'npm ci' can only install packages when your package.json and package-lock.json are in sync.`
+- **Cause:** `package-lock.json` was missing entries for packages like `yjs` and `@swc/helpers`.
+- **Fix:** Ran `npm install` locally to update `package-lock.json` and updated workflow step to `npm install` for CI resilience.
+
