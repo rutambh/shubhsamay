@@ -63,6 +63,12 @@ jobs:
         run: |
           python3 -c "import base64, os; open('rutambhapps.jks', 'wb').write(base64.b64decode(os.environ['KEYSTORE_BASE64']))"
 
+      - name: Inspect Keystore Alias Name
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          keytool -list -keystore rutambhapps.jks -storepass "$KEYSTORE_PASSWORD" || true
+
       - name: Build & Sign Android App Bundle (AAB)
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}

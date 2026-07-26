@@ -37,9 +37,9 @@
 - **Cause:** `@bubblewrap/cli` wrapper CLI is designed for interactive CLI wizards.
 - **Fix:** Switched to direct `./gradlew bundleRelease` compilation and `r0adkll/sign-android-release@v1` signing, eliminating all interactive CLI prompts.
 
-## [2026-07-26] Robust Python base64 keystore decoder step
-- **Issue:** Missing keystore file on runner caused Gradle build/signing to fail.
-- **Cause:** `.jks` file is secret/gitignored and must be generated dynamically from `secrets.KEYSTORE_BASE64`.
-- **Fix:** Added Python `base64.b64decode` step in `playstore.yml` to write `rutambhapps.jks` binary file safely prior to running `./gradlew bundleRelease`.
+## [2026-07-26] Keystore alias mismatch during signReleaseBundle
+- **Error:** `Failed to read key from store: No key with alias found in keystore rutambhapps.jks`
+- **Cause:** `KEY_ALIAS` secret passed to Gradle mismatched the actual key alias name saved inside `rutambhapps.jks`.
+- **Fix:** Added `keytool -list` diagnostic step in `playstore.yml` to inspect and log actual keystore alias names for verification.
 
 
