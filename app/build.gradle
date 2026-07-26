@@ -147,9 +147,21 @@ android {
 
         
     }
+    signingConfigs {
+        release {
+            def ksFile = new File(project.rootDir, "rutambhapps.jks")
+            if (ksFile.exists()) {
+                storeFile ksFile
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
+                keyAlias System.getenv("KEY_ALIAS") ?: "com.rutambh.shubhsamay"
+                keyPassword System.getenv("KEY_PASSWORD") ?: ""
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled true
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {

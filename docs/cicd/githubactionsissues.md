@@ -37,3 +37,8 @@
 - **Cause:** `@bubblewrap/cli` wrapper CLI is designed for interactive CLI wizards.
 - **Fix:** Switched to direct `./gradlew bundleRelease` compilation and `r0adkll/sign-android-release@v1` signing, eliminating all interactive CLI prompts.
 
+## [2026-07-26] Native Gradle signingConfig integration
+- **Issue:** External signing action failed during `.aab` signing step.
+- **Cause:** External action expected specific release directory matching pattern.
+- **Fix:** Integrated `signingConfigs` directly into `app/build.gradle` reading decoded `rutambhapps.jks` and keystore environment variables, compiling and signing `app-release.aab` natively in a single `./gradlew bundleRelease` execution.
+
