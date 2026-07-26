@@ -37,9 +37,9 @@
 - **Cause:** `@bubblewrap/cli` wrapper CLI is designed for interactive CLI wizards.
 - **Fix:** Switched to direct `./gradlew bundleRelease` compilation and `r0adkll/sign-android-release@v1` signing, eliminating all interactive CLI prompts.
 
-## [2026-07-26] Keystore alias mismatch during signReleaseBundle
+## [2026-07-26] Automatic Java KeyStore alias discovery in app/build.gradle
 - **Error:** `Failed to read key from store: No key with alias found in keystore rutambhapps.jks`
-- **Cause:** `KEY_ALIAS` secret passed to Gradle mismatched the actual key alias name saved inside `rutambhapps.jks`.
-- **Fix:** Added `keytool -list` diagnostic step in `playstore.yml` to inspect and log actual keystore alias names for verification.
+- **Cause:** `KEY_ALIAS` secret value did not match the key alias stored inside `rutambhapps.jks`.
+- **Fix:** Added dynamic `java.security.KeyStore` alias discovery directly in `app/build.gradle` `signingConfigs.release`, automatically detecting the exact key alias stored inside `rutambhapps.jks` fallback.
 
 
