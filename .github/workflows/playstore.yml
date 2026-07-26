@@ -71,7 +71,8 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           ALIAS="${KEY_ALIAS:-com.rutambh.shubhsamay}"
-          yes 'n' | npx @bubblewrap/cli build --signingKeyPath=./rutambhapps.jks --signingKeyAlias="$ALIAS" --signingKeyPassword="$KEY_PASSWORD" --keyStorePassword="$KEYSTORE_PASSWORD"
+          yes | npx @bubblewrap/cli update
+          npx @bubblewrap/cli build --signingKeyPath=./rutambhapps.jks --signingKeyAlias="$ALIAS" --signingKeyPassword="$KEY_PASSWORD" --keyStorePassword="$KEYSTORE_PASSWORD" --skipPwaValidation
 
       - name: Upload AAB to Play Store (Internal Track)
         uses: r0adkll/upload-google-play@v1

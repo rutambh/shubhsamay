@@ -27,3 +27,8 @@
 - **Cause:** `@bubblewrap/cli build` requested interactive user confirmation to configure JDK path on headless runner.
 - **Fix:** Pre-created `~/.bubblewrap/config.json` with `jdkPath` ($JAVA_HOME) and `androidSdkPath` ($ANDROID_HOME) and piped `yes 'n'` to build non-interactively.
 
+## [2026-07-26] Bubblewrap twa-manifest.json checksum prompt loop
+- **Error:** `No checksum file was found to verify the state of the twa-manifest.json file. Would you like to regenerate your project?`
+- **Cause:** `@bubblewrap/cli build` looked for `twa-manifest-checksum.txt` which didn't exist prior to running `update`.
+- **Fix:** Ran `yes | npx @bubblewrap/cli update` before `build` to initialize the project and generate the checksum file cleanly.
+
