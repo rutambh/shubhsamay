@@ -70,3 +70,4 @@ docs/cicd/secrets/*
 .gradle/
 /build/
 app/build/
+*.jks

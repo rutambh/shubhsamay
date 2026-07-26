@@ -153,42 +153,13 @@ android {
             if (ksFile.exists()) {
                 storeFile ksFile
                 def ksPassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-                def keyPass = System.getenv("KEY_PASSWORD") ?: ksPassword
+                def keyPass = System.getenv("KEY_PASSWORD")
+                if (keyPass == null || keyPass.trim().isEmpty()) {
+                    keyPass = ksPassword
+                }
                 storePassword ksPassword
                 keyPassword keyPass
-
-                def envAlias = System.getenv("KEY_ALIAS")
-                if (envAlias != null && !envAlias.trim().isEmpty()) {
-                    keyAlias envAlias
-                } else {
-                    try {
-                        def ks = java.security.KeyStore.getInstance("JKS")
-                        ksFile.withInputStream { is -> ks.load(is, ksPassword.toCharArray()) }
-                        def aliases = ks.aliases()
-                        if (aliases.hasMoreElements()) {
-                            def discoveredAlias = aliases.nextElement()
-                            println "Discovered keystore alias: ${discoveredAlias}"
-                            keyAlias discoveredAlias
-                        } else {
-                            keyAlias "com.rutambh.shubhsamay"
-                        }
-                    } catch (Exception e) {
-                        try {
-                            def ks = java.security.KeyStore.getInstance("PKCS12")
-                            ksFile.withInputStream { is -> ks.load(is, ksPassword.toCharArray()) }
-                            def aliases = ks.aliases()
-                            if (aliases.hasMoreElements()) {
-                                def discoveredAlias = aliases.nextElement()
-                                println "Discovered PKCS12 keystore alias: ${discoveredAlias}"
-                                keyAlias discoveredAlias
-                            } else {
-                                keyAlias "com.rutambh.shubhsamay"
-                            }
-                        } catch (Exception e2) {
-                            keyAlias "com.rutambh.shubhsamay"
-                        }
-                    }
-                }
+                keyAlias System.getenv("KEY_ALIAS") ?: "com.rutambh.shubhsamay"
             }
         }
     }

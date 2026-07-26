@@ -67,7 +67,7 @@ jobs:
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
-          keytool -list -keystore rutambhapps.jks -storepass "$KEYSTORE_PASSWORD" || true
+          keytool -list -v -keystore rutambhapps.jks -storepass "$KEYSTORE_PASSWORD" || true
 
       - name: Build & Sign Android App Bundle (AAB)
         env:
