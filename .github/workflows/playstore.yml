@@ -63,15 +63,10 @@ jobs:
           ALIAS="${KEY_ALIAS:-com.rutambh.shubhsamay}"
           npx @bubblewrap/cli build --signingKeyPath=./rutambhapps.jks --signingKeyAlias="$ALIAS" --signingKeyPassword="$KEY_PASSWORD" --keyStorePassword="$KEYSTORE_PASSWORD"
 
-      - name: Save Service Account Key
-        run: |
-          echo '${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}' > pc-api-key.json
-
       - name: Upload AAB to Play Store (Internal Track)
-        uses: rhais/upload-google-play@v1.1.0
+        uses: rskress/play-store-api-action@v1
         with:
-          serviceAccountJson: pc-api-key.json
+          serviceAccountJson: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: com.rutambh.shubhsamay
-          releaseFile: app-release-bundle.aab
+          aabFile: app-release-bundle.aab
           track: internal
-          status: completed
