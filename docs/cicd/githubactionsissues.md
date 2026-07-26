@@ -29,6 +29,6 @@
 
 ## [2026-07-26] Bubblewrap twa-manifest.json checksum prompt loop
 - **Error:** `No checksum file was found to verify the state of the twa-manifest.json file. Would you like to regenerate your project?`
-- **Cause:** `@bubblewrap/cli build` looked for `twa-manifest-checksum.txt` SHA-256 hash matching `twa-manifest.json`.
-- **Fix:** Added SHA-256 hash calculation step generating `twa-manifest-checksum.txt` dynamically alongside `twa-manifest.json` on every run, bypassing all interactive prompts completely.
+- **Cause:** `@bubblewrap/cli build` expected `twa-manifest-checksum.json` containing `{"checksum": "<sha256-hash>"}`.
+- **Fix:** Updated workflow step to generate `twa-manifest-checksum.json` with `{ checksum: hash }` matching `twa-manifest.json` on every build run.
 

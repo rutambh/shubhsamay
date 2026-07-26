@@ -50,7 +50,7 @@ jobs:
             const updatedContent = JSON.stringify(data, null, 2);
             fs.writeFileSync(file, updatedContent);
             const hash = crypto.createHash('sha256').update(updatedContent).digest('hex');
-            fs.writeFileSync('twa-manifest-checksum.txt', hash);
+            fs.writeFileSync('twa-manifest-checksum.json', JSON.stringify({ checksum: hash }, null, 2));
             console.log('Updated appVersionCode to', data.appVersionCode, 'with checksum:', hash);
           "
 
