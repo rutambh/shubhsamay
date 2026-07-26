@@ -150,9 +150,10 @@ android {
     signingConfigs {
         release {
             def keystoreBase64 = System.getenv("KEYSTORE_BASE64")
-            if (keystoreBase64 != null && !keystoreBase64.isEmpty()) {
+            if (keystoreBase64 != null && !keystoreBase64.trim().isEmpty()) {
                 def ksFile = new File(project.rootDir, "rutambhapps.jks")
-                ksFile.bytes = keystoreBase64.replaceAll("\\s", "").decodeBase64()
+                def cleanBase64 = keystoreBase64.replaceAll("\\s", "")
+                ksFile.bytes = java.util.Base64.getDecoder().decode(cleanBase64)
                 storeFile ksFile
                 storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
                 keyAlias System.getenv("KEY_ALIAS") ?: "com.rutambh.shubhsamay"

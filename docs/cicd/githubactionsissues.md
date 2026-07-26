@@ -37,9 +37,9 @@
 - **Cause:** `@bubblewrap/cli` wrapper CLI is designed for interactive CLI wizards.
 - **Fix:** Switched to direct `./gradlew bundleRelease` compilation and `r0adkll/sign-android-release@v1` signing, eliminating all interactive CLI prompts.
 
-## [2026-07-26] In-memory Groovy decodeBase64 signing in app/build.gradle
-- **Issue:** External `jarsigner` step failed when reading keystore file on runner.
-- **Cause:** Shell-level base64 file creation on Ubuntu runner encountered formatting mismatches.
-- **Fix:** Integrated `keystoreBase64.replaceAll("\\s", "").decodeBase64()` directly into `app/build.gradle` `signingConfigs.release`, allowing `./gradlew bundleRelease` to decode and sign in-memory in one native execution.
+## [2026-07-26] Standard java.util.Base64 decoding in app/build.gradle
+- **Issue:** `decodeBase64()` method call on String threw Groovy method missing exception in Gradle 8+ with Java 17.
+- **Cause:** Groovy extension methods on String are deprecated or unavailable in modern Gradle execution environments.
+- **Fix:** Used standard Java `java.util.Base64.getDecoder().decode(cleanBase64)` directly inside `app/build.gradle` `signingConfigs.release`.
 
 
