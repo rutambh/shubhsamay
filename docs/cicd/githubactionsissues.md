@@ -17,3 +17,8 @@
 - **Cause:** `package-lock.json` was missing entries for packages like `yjs` and `@swc/helpers`.
 - **Fix:** Ran `npm install` locally to update `package-lock.json` and updated workflow step to `npm install` for CI resilience.
 
+## [2026-07-26] sh: 1: powershell: not found during npm run build in Linux CI
+- **Error:** `sh: 1: powershell: not found (exit code 127)`
+- **Cause:** `package.json` build script used Windows-specific `powershell` command to copy standalone files.
+- **Fix:** Replaced `powershell` command in `package.json` with cross-platform Node.js `fs.cpSync` script that works identically on Windows, Linux, and macOS.
+
