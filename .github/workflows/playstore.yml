@@ -64,9 +64,10 @@ jobs:
           npx @bubblewrap/cli build --signingKeyPath=./rutambhapps.jks --signingKeyAlias="$ALIAS" --signingKeyPassword="$KEY_PASSWORD" --keyStorePassword="$KEYSTORE_PASSWORD"
 
       - name: Upload AAB to Play Store (Internal Track)
-        uses: rskress/play-store-api-action@v1
+        uses: r0adkll/upload-google-play@v1
         with:
-          serviceAccountJson: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: com.rutambh.shubhsamay
-          aabFile: app-release-bundle.aab
+          releaseFiles: app-release-bundle.aab
           track: internal
+          status: completed

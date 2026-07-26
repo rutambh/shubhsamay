@@ -16,7 +16,7 @@ Workflow File: `.github/workflows/playstore.yml`
 - Sets up Java 17 and Android SDK.
 - **Automatically increments `appVersionCode`** using `${{ github.run_number }}` on every run so Google Play Store never rejects duplicate build numbers.
 - Decodes repository secrets to generate signed `.aab` via `@bubblewrap/cli`.
-- Deploys `.aab` to Google Play Store internal track via `rskress/play-store-api-action@v1`.
+- Deploys `.aab` to Google Play Store internal track via `r0adkll/upload-google-play@v1`.
 
 ## Repository Secret Names
 Configure these in GitHub Repository Settings (`Settings -> Secrets and variables -> Actions`):
