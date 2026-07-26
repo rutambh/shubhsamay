@@ -40,6 +40,6 @@
 ## [2026-07-26] Native JDK jarsigner step for AAB signing
 - **Issue:** External `sign-android-release` action failed during `.aab` bundle signing.
 - **Cause:** Action wrapper dependencies failed to resolve or locate `.aab` file pattern on Linux runner.
-- **Fix:** Switched to native JDK `jarsigner` step using `-sigalg SHA256withRSA -digestalg SHA-256` directly on `app/build/outputs/bundle/release/app-release.aab`, eliminating third-party signing action dependencies.
+- **Fix:** Switched to native JDK `jarsigner` step with `tr -d ' \r\n'` base64 sanitization and explicit alias fallback (`com.rutambh.shubhsamay`) directly on `app/build/outputs/bundle/release/app-release.aab`.
 
 

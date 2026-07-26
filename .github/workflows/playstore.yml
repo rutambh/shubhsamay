@@ -56,7 +56,7 @@ jobs:
 
       - name: Decode Keystore File
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > rutambhapps.jks
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d ' \r\n' | base64 --decode > rutambhapps.jks
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -70,7 +70,9 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          ALIAS="${KEY_ALIAS:-com.rutambh.shubhsamay}"
+          ALIAS="${KEY_ALIAS}"
+          if [ -z "$ALIAS" ]; then ALIAS="com.rutambh.shubhsamay"; fi
+          echo "Signing with alias: $ALIAS"
           jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
             -keystore rutambhapps.jks \
             -storepass "$KEYSTORE_PASSWORD" \
