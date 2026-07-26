@@ -147,9 +147,23 @@ android {
 
         
     }
+    signingConfigs {
+        release {
+            def keystoreBase64 = System.getenv("KEYSTORE_BASE64")
+            if (keystoreBase64 != null && !keystoreBase64.isEmpty()) {
+                def ksFile = new File(project.rootDir, "rutambhapps.jks")
+                ksFile.bytes = keystoreBase64.replaceAll("\\s", "").decodeBase64()
+                storeFile ksFile
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
+                keyAlias System.getenv("KEY_ALIAS") ?: "com.rutambh.shubhsamay"
+                keyPassword System.getenv("KEY_PASSWORD") ?: ""
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled true
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {

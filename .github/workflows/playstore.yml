@@ -54,31 +54,16 @@ jobs:
             console.log('Updated appVersionCode to', data.appVersionCode, 'with checksum:', hash);
           "
 
-      - name: Decode Keystore File
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d ' \r\n' | base64 --decode > rutambhapps.jks
-
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Build Android App Bundle (AAB)
-        run: ./gradlew bundleRelease
-
-      - name: Sign Android App Bundle (AAB)
+      - name: Build & Sign Android App Bundle (AAB)
         env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        run: |
-          ALIAS="${KEY_ALIAS}"
-          if [ -z "$ALIAS" ]; then ALIAS="com.rutambh.shubhsamay"; fi
-          echo "Signing with alias: $ALIAS"
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-            -keystore rutambhapps.jks \
-            -storepass "$KEYSTORE_PASSWORD" \
-            -keypass "$KEY_PASSWORD" \
-            app/build/outputs/bundle/release/app-release.aab \
-            "$ALIAS"
+        run: ./gradlew bundleRelease
 
       - name: Upload AAB to Play Store (Internal Track)
         uses: r0adkll/upload-google-play@v1
