@@ -37,9 +37,9 @@
 - **Cause:** `@bubblewrap/cli` wrapper CLI is designed for interactive CLI wizards.
 - **Fix:** Switched to direct `./gradlew bundleRelease` compilation and `r0adkll/sign-android-release@v1` signing, eliminating all interactive CLI prompts.
 
-## [2026-07-26] Play Store API status draft transition
-- **Issue:** Initial upload to internal track failed with completed status.
-- **Cause:** Google Play API requires initial app releases to be uploaded in `draft` status before finalizing release tracks.
-- **Fix:** Configured `status: draft` in `r0adkll/upload-google-play@v1` step.
+## [2026-07-26] GitHub Actions signed AAB artifact preservation step
+- **Feature:** Preserve signed `.aab` output as downloadable build artifact.
+- **Cause:** Allows direct download of compiled and signed `app-release.aab` from GitHub Actions summary tab.
+- **Fix:** Added `actions/upload-artifact@v4` step targeting `app/build/outputs/bundle/release/app-release.aab`.
 
 
