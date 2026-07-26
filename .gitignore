@@ -65,3 +65,8 @@ scratch/
 .vscode/
 docs/cicd/secrets/*
 !docs/cicd/secrets/README.md
+
+# Gradle build caches & temporary build outputs
+.gradle/
+/build/
+app/build/
