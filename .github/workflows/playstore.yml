@@ -54,28 +54,35 @@ jobs:
             console.log('Updated appVersionCode to', data.appVersionCode, 'with checksum:', hash);
           "
 
+      - name: Decode Keystore File
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > rutambhapps.jks
+
       - name: Make gradlew executable
         run: chmod +x gradlew
 
       - name: Build Android App Bundle (AAB)
         run: ./gradlew bundleRelease
 
-      - name: Sign Android App Bundle
-        uses: r0adkll/sign-android-release@v1
-        id: sign_app
-        with:
-          releaseDirectory: app/build/outputs/bundle/release
-          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-          filePattern: '*.aab'
+      - name: Sign Android App Bundle (AAB)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          ALIAS="${KEY_ALIAS:-com.rutambh.shubhsamay}"
+          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+            -keystore rutambhapps.jks \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            app/build/outputs/bundle/release/app-release.aab \
+            "$ALIAS"
 
       - name: Upload AAB to Play Store (Internal Track)
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: com.rutambh.shubhsamay
-          releaseFiles: ${{ steps.sign_app.outputs.signedReleaseFile }}
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: internal
           status: completed
