@@ -37,9 +37,9 @@
 - **Cause:** `@bubblewrap/cli` wrapper CLI is designed for interactive CLI wizards.
 - **Fix:** Switched to direct `./gradlew bundleRelease` compilation and `r0adkll/sign-android-release@v1` signing, eliminating all interactive CLI prompts.
 
-## [2026-07-26] Play Store upload releaseFiles glob pattern
-- **Issue:** `r0adkll/upload-google-play@v1` step failed during artifact resolution.
-- **Cause:** Specific relative file path vs glob pattern match.
-- **Fix:** Updated `releaseFiles` to `app/build/outputs/bundle/release/*.aab` glob pattern with direct `serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}` input.
+## [2026-07-26] Play Store Service Account JSON file validation
+- **Issue:** `r0adkll/upload-google-play@v1` step failed during authentication.
+- **Cause:** Multi-line string format issues in inline JSON secret payload.
+- **Fix:** Added Python `json.loads` validation step writing `serviceAccount.json` directly to disk and passed `serviceAccountJson: serviceAccount.json` file path.
 
 
