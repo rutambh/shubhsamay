@@ -76,10 +76,16 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: ./gradlew bundleRelease
 
+      - name: Decode Service Account JSON
+        env:
+          SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          python3 -c "import os; open('serviceAccount.json', 'w').write(os.environ['SERVICE_ACCOUNT_JSON'])"
+
       - name: Upload AAB to Play Store (Internal Track)
         uses: r0adkll/upload-google-play@v1
         with:
-          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          serviceAccountJson: serviceAccount.json
           packageName: com.rutambh.shubhsamay
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: internal

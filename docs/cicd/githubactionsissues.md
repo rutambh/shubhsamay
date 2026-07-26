@@ -37,9 +37,9 @@
 - **Cause:** `@bubblewrap/cli` wrapper CLI is designed for interactive CLI wizards.
 - **Fix:** Switched to direct `./gradlew bundleRelease` compilation and `r0adkll/sign-android-release@v1` signing, eliminating all interactive CLI prompts.
 
-## [2026-07-26] Automatic Java KeyStore alias discovery in app/build.gradle
-- **Error:** `Failed to read key from store: No key with alias found in keystore rutambhapps.jks`
-- **Cause:** `KEY_ALIAS` secret value did not match the key alias stored inside `rutambhapps.jks`.
-- **Fix:** Added dynamic `java.security.KeyStore` alias discovery directly in `app/build.gradle` `signingConfigs.release`, automatically detecting the exact key alias stored inside `rutambhapps.jks` fallback.
+## [2026-07-26] Play Store Service Account JSON file creation step
+- **Issue:** `r0adkll/upload-google-play@v1` step failed when receiving multi-line inline JSON secret.
+- **Cause:** Multi-line string formatting in GitHub Actions input parameter `serviceAccountJsonPlainText`.
+- **Fix:** Added Python step writing `serviceAccount.json` file directly to disk on the runner and passed `serviceAccountJson: serviceAccount.json`.
 
 
