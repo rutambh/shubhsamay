@@ -14,8 +14,9 @@ Workflow File: `.github/workflows/playstore.yml`
 - Triggers on push to `main` branch or manual execution (`workflow_dispatch`).
 - Verifies Next.js web application (`npm run lint` & `npm run build`).
 - Sets up Java 17 and Android SDK.
-- **Automatically increments `appVersionCode`** using `${{ github.run_number }}` on every run so Google Play Store never rejects duplicate build numbers.
-- Decodes repository secrets to generate signed `.aab` via `@bubblewrap/cli`.
+- **Automatically increments `versionCode`** using `${{ github.run_number }}` in `app/build.gradle` on every run.
+- Builds Android App Bundle via `./gradlew bundleRelease`.
+- Signs `.aab` using `r0adkll/sign-android-release@v1`.
 - Deploys `.aab` to Google Play Store internal track via `r0adkll/upload-google-play@v1`.
 
 ## Repository Secret Names

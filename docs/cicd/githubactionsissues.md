@@ -32,3 +32,8 @@
 - **Cause:** `@bubblewrap/cli build` expected `twa-manifest-checksum.json` containing `{"checksum": "<sha256-hash>"}`.
 - **Fix:** Updated workflow step to generate `twa-manifest-checksum.json` with `{ checksum: hash }` matching `twa-manifest.json` on every build run.
 
+## [2026-07-26] Transition to direct Gradle build & signing action
+- **Issue:** `@bubblewrap/cli build` continuously prompted for interactive input in headless CI environments.
+- **Cause:** `@bubblewrap/cli` wrapper CLI is designed for interactive CLI wizards.
+- **Fix:** Switched to direct `./gradlew bundleRelease` compilation and `r0adkll/sign-android-release@v1` signing, eliminating all interactive CLI prompts.
+
