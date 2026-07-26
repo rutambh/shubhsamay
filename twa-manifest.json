@@ -1,0 +1,31 @@
+{
+  "packageId": "com.rutambh.shubhsamay",
+  "host": "shubhsamay.app",
+  "name": "Shubh Samay",
+  "launcherName": "Shubh Samay",
+  "display": "standalone",
+  "themeColor": "#8B1E3F",
+  "navigationColor": "#8B1E3F",
+  "backgroundColor": "#FFF8F0",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://shubhsamay.app/icon-512.png",
+  "maskableIconUrl": "https://shubhsamay.app/icon-512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./rutambhapps.jks",
+    "alias": "com.rutambh.shubhsamay"
+  },
+  "appVersion": "1.0.0",
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://shubhsamay.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": "true",
+  "isChromeOSOnly": false,
+  "orientation": "portrait"
+}

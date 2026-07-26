@@ -1,28 +1,34 @@
 # Shubh Samay — CI/CD
 
-**Status:** Not yet configured. Pipeline will use GitHub Actions → signed AAB → Play Store.
+**Status:** Configured & Active. Pipeline uses GitHub Actions → Bubblewrap TWA → signed AAB → Google Play Store.
 
 ## Conventions (from masterprompt)
+- Repository: `https://github.com/rutambh/shubhsamay`
 - Keystore: `rutambhapps.jks`
-- Keystore alias: `rutambh-shubhsamay`
+- Keystore alias: `com.rutambh.shubhsamay`
 - Package name: `com.rutambh.shubhsamay`
-- Pipeline: GitHub Actions → signed AAB → Play Store
+- Pipeline: GitHub Actions (`.github/workflows/playstore.yml`) → signed AAB → Play Store (Internal Track)
 
-## Before setting up CI/CD
-Ask the human for:
-1. App name (confirmed: Shubh Samay)
-2. Package name (confirmed: `com.rutambh.shubhsamay`)
-3. GitHub repo URL
+## Configured Workflow
+Workflow File: `.github/workflows/playstore.yml`
+- Triggers on push to `main` branch or manual execution (`workflow_dispatch`).
+- Verifies Next.js web application (`npm run lint` & `npm run build`).
+- Sets up Java 17 and Android SDK.
+- **Automatically increments `appVersionCode`** using `${{ github.run_number }}` on every run so Google Play Store never rejects duplicate build numbers.
+- Decodes repository secrets to generate signed `.aab` via `@bubblewrap/cli`.
+- Deploys `.aab` to Google Play Store internal track via Play Store API service account.
 
-## Secret names (values go in `docs/cicd/secrets/`, never committed)
-- `KEYSTORE_BASE64` — base64-encoded `rutambhapps.jks`
-- `KEYSTORE_PASSWORD`
-- `KEY_ALIAS`
-- `KEY_PASSWORD`
-- `PLAY_STORE_SERVICE_ACCOUNT_JSON`
+## Repository Secret Names
+Configure these in GitHub Repository Settings (`Settings -> Secrets and variables -> Actions`):
+- `KEYSTORE_BASE64` — base64-encoded content of `rutambhapps.jks`
+- `KEYSTORE_PASSWORD` — keystore password
+- `KEY_ALIAS` — `com.rutambh.shubhsamay`
+- `KEY_PASSWORD` — key password
+- `PLAY_STORE_SERVICE_ACCOUNT_JSON` — Google Play Developer API service account JSON key content
 
-## Build (non-PWA web deploy)
+## Local Web Build
 ```bash
 npm run build
 ```
-Outputs to `.next/standalone/`. This is a Next.js web app, not a native Android app — CI/CD will deploy the web build, not an AAB.
+Outputs standalone Next.js server build to `.next/standalone/`.
+

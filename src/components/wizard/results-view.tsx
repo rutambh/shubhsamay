@@ -65,21 +65,12 @@ export function ResultsView({
   onReset,
 }: Props) {
   const { lang, t } = useLang();
-  // Only ONE tile selected at a time (radio-style). Default: highest tier with slots.
-  const [selectedTier, setSelectedTier] = useState<Tier | null>(() => {
-    if (highly.length > 0) return "highly";
-    if (auspicious.length > 0) return "auspicious";
-    if (good.length > 0) return "good";
-    return null;
-  });
+  const defaultTier: Tier | null =
+    highly.length > 0 ? "highly" : auspicious.length > 0 ? "auspicious" : good.length > 0 ? "good" : null;
+  const [overrideTier, setOverrideTier] = useState<Tier | null>(null);
 
-  // Keep selectedTier synced when results props update
-  useEffect(() => {
-    if (highly.length > 0) setSelectedTier("highly");
-    else if (auspicious.length > 0) setSelectedTier("auspicious");
-    else if (good.length > 0) setSelectedTier("good");
-    else setSelectedTier(null);
-  }, [highly, auspicious, good]);
+  const selectedTier = overrideTier ?? defaultTier;
+  const setSelectedTier = setOverrideTier;
 
   if (loading) {
     return (

@@ -60,7 +60,19 @@ function ShubhSamayApp() {
   const [methods, setMethods] = useState<MethodId[]>([]);
   const [dates, setDates] = useState<Date[]>([]);
   const [timeWindow, setTimeWindow] = useState<TimeWindow | null>(null);
-  const [city, setCity] = useState<CityDef | null>(null);
+  const [city, setCity] = useState<CityDef | null>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("shubh_samay_location");
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // Fall through if invalid JSON
+        }
+      }
+    }
+    return null;
+  });
   const [showDefaultLocationDialog, setShowDefaultLocationDialog] = useState(false);
   const [now, setNow] = useState<Date>(new Date());
 
@@ -80,17 +92,7 @@ function ShubhSamayApp() {
 
   // Initial location load & first-launch GPS permission handling
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const saved = localStorage.getItem("shubh_samay_location");
-    if (saved) {
-      try {
-        setCity(JSON.parse(saved));
-        return;
-      } catch {
-        // Fall through if invalid JSON
-      }
-    }
+    if (typeof window === "undefined" || city) return;
 
     // No saved location -> First-time app open: request GPS permission
     if (typeof navigator !== "undefined" && navigator.geolocation) {
@@ -126,10 +128,12 @@ function ShubhSamayApp() {
         { timeout: 10000, enableHighAccuracy: true }
       );
     } else {
-      const ahmedabad = CITIES[0];
-      setCity(ahmedabad);
-      localStorage.setItem("shubh_samay_location", JSON.stringify(ahmedabad));
-      setShowDefaultLocationDialog(true);
+      queueMicrotask(() => {
+        const ahmedabad = CITIES[0];
+        setCity(ahmedabad);
+        localStorage.setItem("shubh_samay_location", JSON.stringify(ahmedabad));
+        setShowDefaultLocationDialog(true);
+      });
     }
   }, []);
 

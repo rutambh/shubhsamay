@@ -86,9 +86,16 @@ export function PanchangToday({ city, tzOffsetHours }: Props) {
 
   // Initial fetch + auto-refresh every 60 seconds
   useEffect(() => {
-    fetchData();
+    let active = true;
+    const runFetch = async () => {
+      if (active) await fetchData();
+    };
+    void runFetch();
     const interval = setInterval(fetchData, 60000);
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [fetchData]);
 
   if (loading || !data) {
