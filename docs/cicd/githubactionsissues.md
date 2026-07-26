@@ -37,9 +37,9 @@
 - **Cause:** `@bubblewrap/cli` wrapper CLI is designed for interactive CLI wizards.
 - **Fix:** Switched to direct `./gradlew bundleRelease` compilation and `r0adkll/sign-android-release@v1` signing, eliminating all interactive CLI prompts.
 
-## [2026-07-26] Standard java.util.Base64 decoding in app/build.gradle
-- **Issue:** `decodeBase64()` method call on String threw Groovy method missing exception in Gradle 8+ with Java 17.
-- **Cause:** Groovy extension methods on String are deprecated or unavailable in modern Gradle execution environments.
-- **Fix:** Used standard Java `java.util.Base64.getDecoder().decode(cleanBase64)` directly inside `app/build.gradle` `signingConfigs.release`.
+## [2026-07-26] Robust Python base64 keystore decoder step
+- **Issue:** Missing keystore file on runner caused Gradle build/signing to fail.
+- **Cause:** `.jks` file is secret/gitignored and must be generated dynamically from `secrets.KEYSTORE_BASE64`.
+- **Fix:** Added Python `base64.b64decode` step in `playstore.yml` to write `rutambhapps.jks` binary file safely prior to running `./gradlew bundleRelease`.
 
 
