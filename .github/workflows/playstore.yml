@@ -39,15 +39,19 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Auto-increment Version Code
+      - name: Auto-increment Version Code & Generate Checksum
         run: |
           node -e "
             const fs = require('fs');
+            const crypto = require('crypto');
             const file = 'twa-manifest.json';
             const data = JSON.parse(fs.readFileSync(file, 'utf8'));
             data.appVersionCode = ${{ github.run_number }};
-            fs.writeFileSync(file, JSON.stringify(data, null, 2));
-            console.log('Updated appVersionCode to', data.appVersionCode);
+            const updatedContent = JSON.stringify(data, null, 2);
+            fs.writeFileSync(file, updatedContent);
+            const hash = crypto.createHash('sha256').update(updatedContent).digest('hex');
+            fs.writeFileSync('twa-manifest-checksum.txt', hash);
+            console.log('Updated appVersionCode to', data.appVersionCode, 'with checksum:', hash);
           "
 
       - name: Decode Keystore File
@@ -71,7 +75,6 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           ALIAS="${KEY_ALIAS:-com.rutambh.shubhsamay}"
-          yes | npx @bubblewrap/cli update
           npx @bubblewrap/cli build --signingKeyPath=./rutambhapps.jks --signingKeyAlias="$ALIAS" --signingKeyPassword="$KEY_PASSWORD" --keyStorePassword="$KEYSTORE_PASSWORD" --skipPwaValidation
 
       - name: Upload AAB to Play Store (Internal Track)
