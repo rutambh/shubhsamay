@@ -90,4 +90,5 @@ jobs:
           releaseFiles: android-app/build/outputs/bundle/release/*.aab
           track: production
           status: completed
+          changesNotSentForReview: true
           whatsNewDirectory: whatsnew
