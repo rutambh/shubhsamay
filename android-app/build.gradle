@@ -22,8 +22,8 @@ plugins {
 
 def twaManifest = [
     applicationId: 'com.rutambh.shubhsamay',
-    hostName: 'raw.githubusercontent.com', // The domain being opened in the TWA.
-    launchUrl: '/rutambh/shubhsamay/main/public/', // The start path for the TWA. Must be relative to the domain.
+    hostName: 'shubhsamay.app', // The domain being opened in the TWA.
+    launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
     name: 'Shubh Samay', // The application name.
     launcherName: 'Shubh Samay', // The name shown on the Android Launcher.
     themeColor: '#8B1E3F', // The color used for the status bar.
@@ -83,7 +83,7 @@ android {
             // The URL the Web Manifest for the Progressive Web App that the TWA points to. This
             // is used by Chrome OS and Meta Quest to open the Web version of the PWA instead of
             // the TWA, as it will probably give a better user experience for non-mobile devices.
-            resValue "string", "webManifestUrl", 'https://raw.githubusercontent.com/rutambh/shubhsamay/main/public/manifest.webmanifest'
+            resValue "string", "webManifestUrl", 'https://shubhsamay.app/manifest.webmanifest'
         
 
         

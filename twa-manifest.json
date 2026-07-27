@@ -1,6 +1,6 @@
 {
   "packageId": "com.rutambh.shubhsamay",
-  "host": "raw.githubusercontent.com",
+  "host": "shubhsamay.app",
   "name": "Shubh Samay",
   "launcherName": "Shubh Samay",
   "display": "standalone",
@@ -8,11 +8,12 @@
   "navigationColor": "#8B1E3F",
   "backgroundColor": "#FFF8F0",
   "enableNotifications": false,
-  "startUrl": "/rutambh/shubhsamay/main/public/",
-  "iconUrl": "https://raw.githubusercontent.com/rutambh/shubhsamay/main/public/icon-512.png",
-  "maskableIconUrl": "https://raw.githubusercontent.com/rutambh/shubhsamay/main/public/icon-512.png",
+  "startUrl": "/",
+  "iconUrl": "https://shubhsamay.app/icon-512.png",
+  "maskableIconUrl": "https://shubhsamay.app/icon-512.png",
   "appVersionName": "1.0.2",
   "appVersionCode": 41,
+
   "signingKey": {
     "path": "./rutambhapps.jks",
     "alias": "com.rutambh.shubhsamay"

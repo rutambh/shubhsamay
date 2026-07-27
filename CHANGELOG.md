@@ -2,7 +2,19 @@
 
 Working log for task summaries per Section 8.3 of the Master Prompt protocol. Entries here are merged into permanent documentation files upon request.
 
+## [2026-07-27] — MINOR Fix: Remove Old Splash Screen on App Launch
+- **MINOR fix**: Removed `SPLASH_IMAGE_DRAWABLE`, `SPLASH_SCREEN_BACKGROUND_COLOR`, and `SPLASH_SCREEN_FADE_OUT_DURATION` meta-data from `AndroidManifest.xml` so the old kalash icon no longer shows on launch — TWA now goes straight to the website.
+
+## [2026-07-27] — MAJOR Fix: TWA Host Misconfiguration (404 Blocker on Mobile)
+
+- **MAJOR fix**: Corrected Android TWA host pointing to `raw.githubusercontent.com` instead of `shubhsamay.app`, causing the app to be stuck on a 404 error screen on mobile.
+- `twa-manifest.json`: Changed `host` → `shubhsamay.app`, `startUrl` → `/`, `iconUrl` and `maskableIconUrl` → `https://shubhsamay.app/icon-512.png`.
+- `android-app/build.gradle`: Changed `hostName` → `shubhsamay.app`, `launchUrl` → `/`, `webManifestUrl` → `https://shubhsamay.app/manifest.webmanifest`.
+- `android-app/src/main/res/values/strings.xml`: Changed Digital Asset Links `site` → `https://shubhsamay.app`.
+- **Action required**: Push to `main` to trigger a new build and deploy to Play Store.
+
 ## [2026-07-26] — CI/CD Play Store Production Release & Build Fix
+
 - **MINOR fix**: Fixed AAB file path mismatch in `.github/workflows/playstore.yml` by updating `path` and `releaseFiles` to `android-app/build/outputs/bundle/release/*.aab` (matching Gradle's `android-app-release.aab` output).
 - Updated `.github/workflows/playstore.yml` to deploy signed AAB directly to Google Play Store **Production Track**.
 - Updated `android-app/build.gradle` to dynamically compute `versionCode` from `twa-manifest.json` / `VERSION_CODE` environment variable so GitHub Actions auto-increments build numbers on every release run.
