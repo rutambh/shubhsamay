@@ -2,6 +2,9 @@
 
 Working log for task summaries per Section 8.3 of the Master Prompt protocol. Entries here are merged into permanent documentation files upon request.
 
+## [2026-07-27] — MINOR Fix: Update Android Target API Level to 36
+- **MINOR fix**: Updated `targetSdkVersion` from `35` to `36` (Android 16) in `android-app/build.gradle` to comply with Google Play Store target API level requirements.
+
 ## [2026-07-27] — MINOR Fix: Remove Old Splash Screen on App Launch
 - **MINOR fix**: Removed `SPLASH_IMAGE_DRAWABLE`, `SPLASH_SCREEN_BACKGROUND_COLOR`, and `SPLASH_SCREEN_FADE_OUT_DURATION` meta-data from `AndroidManifest.xml` so the old kalash icon no longer shows on launch — TWA now goes straight to the website.
 

@@ -63,7 +63,7 @@ android {
     defaultConfig {
         applicationId "com.rutambh.shubhsamay"
         minSdkVersion 21
-        targetSdkVersion 35
+        targetSdkVersion 36
         versionCode computedVersionCode
         versionName computedVersionName
 

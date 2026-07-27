@@ -2,6 +2,10 @@
 
 Append-only log of feature and architecture improvements across the project lifecycle, per Section 5 of the Master Prompt protocol.
 
+## 2026-07-27 — Update Android Target API Level to 36
+**Improvement:** Updated `targetSdkVersion` to `36` (Android 16) in `android-app/build.gradle`.  
+**Result:** Met Google Play Store requirement mandating target API level within 1 year of latest Android release for app updates.
+
 ## 2026-07-04 — Standalone Muhurat & Separate Tithi/Nakshatra/Yoga (V7 & V8)
 **Improvement:** Restricted Muhurat method exclusively to Abhijit and Brahma Muhurat windows. Extracted Yoga into its own standalone calculation method. Made Muhurat non-disqualifying when selected in "All" mode.  
 **Result:** Prevented strict Muhurat filtering from eliminating valid auspicious slots across 24-hour periods.
