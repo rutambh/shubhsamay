@@ -11,13 +11,13 @@
   "startUrl": "/",
   "iconUrl": "https://shubhsamay.app/icon-512.png",
   "maskableIconUrl": "https://shubhsamay.app/icon-512.png",
-  "appVersionName": "1.0.3",
-  "appVersionCode": 42,
+  "appVersionName": "1.0.4",
+  "appVersionCode": 43,
   "signingKey": {
     "path": "./rutambhapps.jks",
     "alias": "com.rutambh.shubhsamay"
   },
-  "appVersion": "1.0.3",
+  "appVersion": "1.0.4",
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://shubhsamay.app/manifest.webmanifest",
   "fallbackType": "customtabs",
