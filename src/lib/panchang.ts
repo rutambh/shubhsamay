@@ -312,7 +312,7 @@ export function getSunrise(date: Date, loc: LatLng): Date | null {
   const observer = new Observer(loc.lat, loc.lng, 0);
   try {
     // direction = +1 means altitude increasing (rising); altitude = -0.833° for true sunrise
-    const result = SearchAltitude(Body.Sun, observer, +1, midnightUT, 1, -0.833);
+    const result = SearchAltitude(Body.Sun, observer, +1, midnightUT, 2, -0.833);
     return result ? result.date : null;
   } catch {
     return null;
@@ -326,12 +326,10 @@ export function getSunrise(date: Date, loc: LatLng): Date | null {
  */
 export function getSunset(date: Date, loc: LatLng): Date | null {
   const midnightUT = localMidnightUTC(date, loc.tzOffsetHours, loc.tz);
-  // Start search from local noon (midnight + 12h) to find evening sunset
-  const noonUT = new Date(midnightUT.getTime() + 12 * 3600000);
   const observer = new Observer(loc.lat, loc.lng, 0);
   try {
     // direction = -1 means altitude decreasing (setting); altitude = -0.833° for true sunset
-    const result = SearchAltitude(Body.Sun, observer, -1, noonUT, 1, -0.833);
+    const result = SearchAltitude(Body.Sun, observer, -1, midnightUT, 2, -0.833);
     return result ? result.date : null;
   } catch {
     return null;

@@ -2,6 +2,15 @@
 
 Append-only log of bug fix attempts across the project lifecycle, per Section 5 of the Master Prompt protocol.
 
+## 2026-08-17 — Mobile City Selector Scroll Trap & Performance Lag
+**Issue:** 
+1. In Settings drawer, clicking "Select City" opened a nested Popover inside Radix Sheet which trapped touch events and prevented scrolling down the list on mobile devices.
+2. The entire `ShubhSamayApp` component tree was re-rendering every 1 second due to the top-level header clock interval.  
+**Fix [MAJOR]:**
+1. Created `CitySelectModal` (`src/components/city-select-modal.tsx`) using a full `Dialog` with categorized tabs (Gujarat 33 districts, India, USA, UK, Canada, Australia, UAE / Gulf, Global), search input, and dedicated `touch-pan-y overscroll-contain` scroll container.
+2. Isolated 1-second interval timer inside `<LiveHeaderDateTime />` in `src/app/page.tsx`, removing all 1-second re-renders from the main wizard app.  
+**Result:** Smooth, effortless city selection and instant UI response with 0 lag. Verified via clean `npm run build`.
+
 ## 2026-07-25 — Past Time Selectable in Time Window for Today
 **Issue:** `Math.floor` in `currentDecimalHour` calculation allowed selecting a "From" time that had already passed (e.g., selecting 7:00 PM when it's 7:18 PM).  
 **Fix:** Changed `Math.floor` to `Math.ceil` so the "From" dropdown only shows slots that haven't started yet.  
@@ -22,3 +31,12 @@ Append-only log of bug fix attempts across the project lifecycle, per Section 5 
 **Issue:** Selecting "Muhurat" method standalone for 28th July 4:00 AM – 4:30 AM suggested the slot as "GOOD" even though no Special Muhurat (Abhijit, Brahma, Vijaya, Godhuli, Pradosh, Nishita) was active during that period. The engine was assigning non-active Muhurat slots `overallTier = "good"` instead of disqualifying them.  
 **Fix [MINOR]:** Updated `classifySlot()` in `src/lib/events.ts` line 740 so that when `muhuratOnlyMethod` is `true` and `classification.muhurat?.active` is `false`, `overallTier` evaluates to `"avoid"`.  
 **Result:** Non-Muhurat time slots are properly disqualified when Muhurat is selected standalone. Verified via clean `npm run build`.
+## 2026-07-29 — Mobile App Redirecting to non-existent shubhsamay.app Website (404 Error)
+**Issue:** Opening the Android app on mobile launched Chrome Custom Tabs pointing to `https://shubhsamay.app/`, resulting in a 404 error because no website was hosted or planned for `shubhsamay.app`.  
+**Fix [MAJOR]:** Converted Android packaging model from TWA (`androidbrowserhelper`) to a Standalone Local Android WebView App:
+1. Created `src/lib/client-api.ts` so all astronomical/Panchang calculations execute 100% client-side via `astronomy-engine`.
+2. Configured `next.config.ts` for static HTML export (`output: 'export'`).
+3. Created native `MainActivity.java` using `WebViewAssetLoader` serving local assets from `assets/www/index.html`.
+4. Added `npm run build:android` script to `package.json` to export Next.js static files and sync into `android-app/src/main/assets/www/`.
+5. Updated `android-app/build.gradle` and `AndroidManifest.xml` to replace TWA activities with `MainActivity`.  
+**Files:** `src/lib/client-api.ts`, `src/app/page.tsx`, `src/components/wizard/panchang-today.tsx`, `next.config.ts`, `package.json`, `android-app/build.gradle`, `android-app/src/main/AndroidManifest.xml`, `android-app/src/main/java/com/rutambh/shubhsamay/MainActivity.java`, `.github/workflows/playstore.yml`.

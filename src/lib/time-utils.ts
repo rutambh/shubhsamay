@@ -68,6 +68,35 @@ export function wallClockToUtc(date: Date, hours: number, minutes: number, tz: s
 }
 
 /**
+ * Gets UTC Date for 00:00:00 local midnight in a target timezone without device-local shifting.
+ */
+export function getStartOfCivilDayInTz(date: Date, tz: string = "Asia/Kolkata"): Date {
+  return wallClockToUtc(date, 0, 0, tz);
+}
+
+/**
+ * Gets UTC Date for 23:59:59 end of day in a target timezone.
+ */
+export function getEndOfCivilDayInTz(date: Date, tz: string = "Asia/Kolkata"): Date {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+    const get = (type: string) => parseInt(parts.find((p) => p.type === type)?.value || "0", 10);
+    const nextUtcMidnight = new Date(Date.UTC(get("year"), get("month") - 1, get("day") + 1, 0, 0, 0, 0));
+    const offsetMs = getTimezoneOffsetMs(nextUtcMidnight, tz);
+    return new Date(nextUtcMidnight.getTime() + offsetMs);
+  } catch {
+    const d = new Date(date);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  }
+}
+
+/**
  * Calculates Great Circle distance between two geographic coordinates in kilometers (Haversine formula).
  */
 export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

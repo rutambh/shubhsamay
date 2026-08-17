@@ -14,6 +14,7 @@ import {
   AlertCircle,
   CheckCircle2,
   CalendarClock,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Tier, SlotClassification, MethodId } from "@/lib/events";
@@ -155,12 +156,26 @@ export function ResultsView({
 
   return (
     <div className="space-y-3.5">
-      {eventName && (
-        <p className="text-xs text-muted-foreground text-center">
-          {lang === "gu" ? "પ્રસંગ: " : "Event: "}
-          <span className="font-semibold text-foreground">{eventName}</span>
-        </p>
-      )}
+      <div className="flex items-center justify-between gap-2 pb-0.5">
+        {eventName ? (
+          <p className="text-xs text-muted-foreground">
+            {lang === "gu" ? "પ્રસંગ: " : "Event: "}
+            <span className="font-semibold text-foreground">{eventName}</span>
+          </p>
+        ) : (
+          <div />
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onReset}
+          className="h-7 px-2 gap-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 rounded-full"
+          title={t("startOver")}
+        >
+          <Home className="h-3.5 w-3.5" />
+          <span>{lang === "gu" ? "મુખ્ય પૃષ્ઠ" : "Home"}</span>
+        </Button>
+      </div>
 
       {/* Compact Best Recommended Timing Card */}
       {topSlot && (
@@ -242,8 +257,17 @@ export function ResultsView({
             />
           </div>
 
-          {/* CASE 1: Results are visible -> Add "Change date and time" button right under Best Recommended timing card */}
-          <div className="pt-1 flex justify-end">
+          {/* CASE 1: Results are visible -> Add Home and "Change date and time" button right under Best Recommended timing card */}
+          <div className="pt-1 flex items-center justify-end gap-2">
+            <Button
+              onClick={onReset}
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs font-semibold gap-1.5 border-border/80 text-muted-foreground hover:text-foreground hover:bg-accent/40 shadow-2xs"
+            >
+              <Home className="h-3.5 w-3.5" />
+              {lang === "gu" ? "હોમ" : "Home"}
+            </Button>
             <Button
               onClick={onChangeDateAndTime || onReset}
               variant="outline"
@@ -259,7 +283,16 @@ export function ResultsView({
 
       {/* If no topSlot but total > 0, show button at top of results grid */}
       {!topSlot && total > 0 && (
-        <div className="flex justify-end pb-1">
+        <div className="flex items-center justify-end gap-2 pb-1">
+          <Button
+            onClick={onReset}
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs font-semibold gap-1.5 border-border/80 text-muted-foreground hover:text-foreground hover:bg-accent/40 shadow-2xs"
+          >
+            <Home className="h-3.5 w-3.5" />
+            {lang === "gu" ? "હોમ" : "Home"}
+          </Button>
           <Button
             onClick={onChangeDateAndTime || onReset}
             variant="outline"

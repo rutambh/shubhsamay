@@ -10,6 +10,7 @@ import { classifyYoga } from "@/lib/events";
 import { formatTzTime } from "@/lib/i18n";
 import { Loader2 } from "lucide-react";
 import { SunTrackerCard } from "@/components/wizard/sun-tracker-card";
+import { computePanchangClient } from "@/lib/client-api";
 
 interface PanchangData {
   now: string;
@@ -49,6 +50,28 @@ interface Props {
   onCityChange?: (city: CityDef) => void;
 }
 
+const LORD_GU_MAP: Record<string, string> = {
+  Sun: "સૂર્ય",
+  Moon: "ચંદ્ર",
+  Mars: "મંગળ",
+  Mercury: "બુધ",
+  Jupiter: "ગુરુ",
+  Venus: "શુક્ર",
+  Saturn: "શનિ",
+  Rahu: "રાહુ",
+  Ketu: "કેતુ",
+};
+
+const VARA_LORD_EN: Record<string, string> = {
+  Sunday: "Sun",
+  Monday: "Moon",
+  Tuesday: "Mars",
+  Wednesday: "Mercury",
+  Thursday: "Jupiter",
+  Friday: "Venus",
+  Saturday: "Saturn",
+};
+
 export function PanchangToday({ city, tzOffsetHours }: Props) {
   const { lang } = useLang();
   const [data, setData] = useState<PanchangData | null>(null);
@@ -83,21 +106,38 @@ export function PanchangToday({ city, tzOffsetHours }: Props) {
       tz: "Asia/Kolkata",
     };
     try {
-      const res = await fetch("/api/panchang", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      let d: PanchangData | null = null;
+      try {
+        const res = await fetch("/api/panchang", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            date: new Date().toISOString(),
+            lat: loc.lat,
+            lng: loc.lng,
+            tzOffsetHours,
+            tz: loc.tz,
+          }),
+        });
+        if (res.ok) {
+          d = await res.json();
+        }
+      } catch {
+        // Fallback to client-side computation when static/offline
+      }
+
+      if (!d || !d.now) {
+        d = computePanchangClient({
           date: new Date().toISOString(),
           lat: loc.lat,
           lng: loc.lng,
           tzOffsetHours,
           tz: loc.tz,
-        }),
-      });
-      const d = await res.json();
-      if (d.ok) {
+        });
+      }
+
+      if (d && d.tithi) {
         setData(d);
-        // Persist in local storage for 0ms instant display on future app opens
         try {
           const todayStr = new Date().toISOString().slice(0, 10);
           const cacheKey = `shubh_samay_panchang_${loc.name_en}_${todayStr}`;
@@ -171,10 +211,20 @@ export function PanchangToday({ city, tzOffsetHours }: Props) {
         <Cell
           label={lang === "gu" ? "વાર" : "Vara"}
           value={lang === "gu" ? data.vara.name_gu : data.vara.name_en}
+          sub={
+            lang === "gu"
+              ? `સ્વામી: ${LORD_GU_MAP[VARA_LORD_EN[data.vara.name_en] || "Sun"] || "સૂર્ય"}`
+              : `Lord: ${VARA_LORD_EN[data.vara.name_en] || "Sun"}`
+          }
         />
         <Cell
           label={lang === "gu" ? "નક્ષત્ર" : "Nakshatra"}
           value={lang === "gu" ? data.nakshatra.name_gu : data.nakshatra.name_en}
+          sub={
+            data.nakshatra.lord
+              ? `${lang === "gu" ? "સ્વામી: " : "Lord: "}${lang === "gu" ? (LORD_GU_MAP[data.nakshatra.lord] || data.nakshatra.lord) : data.nakshatra.lord}`
+              : undefined
+          }
         />
         <Cell
           label={lang === "gu" ? "યોગ / કરણ" : "Yoga / Karana"}
@@ -260,19 +310,19 @@ function Cell({
   return (
     <div
       className={cn(
-        "p-2 sm:p-2.5 rounded-lg border flex flex-col justify-between transition-all shadow-2xs min-h-[60px]",
+        "p-2 sm:p-2.5 rounded-lg border flex flex-col justify-between items-center text-center transition-all shadow-2xs min-h-[66px] h-full",
         toneClass
       )}
     >
       <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider">
         {label}
       </p>
-      <div>
-        <p className="text-xs sm:text-sm font-bold truncate leading-tight">
+      <div className="flex-1 flex flex-col justify-center items-center my-auto py-0.5 w-full">
+        <p className="text-xs sm:text-sm font-bold leading-tight break-words">
           {value}
         </p>
         {sub && (
-          <p className="text-[10px] font-medium opacity-90 truncate leading-tight pt-0.5">{sub}</p>
+          <p className="text-[10px] font-medium opacity-90 leading-tight pt-0.5 break-words line-clamp-1">{sub}</p>
         )}
       </div>
     </div>

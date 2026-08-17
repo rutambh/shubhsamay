@@ -101,24 +101,23 @@ export function LocationSearch({ value, onChange, onGpsError, className }: Props
   return (
     <Button
       variant="outline"
+      size="icon"
       onClick={handleQuickSync}
       disabled={loadingGps}
-      aria-label={lang === "gu" ? "જીપીએસ સ્થાન ઓટો ફેચ કરો" : "Auto fetch GPS location"}
+      aria-label={lang === "gu" ? `જીપીએસ સ્થાન: ${currentLabel}` : `GPS Location: ${currentLabel}`}
+      title={lang === "gu" ? `સ્થાન: ${currentLabel}` : `Location: ${currentLabel}`}
       className={cn(
-        "gap-1.5 rounded-full border-primary/20 bg-background/80 backdrop-blur hover:bg-accent/40 h-9 px-2.5 sm:px-3 transition-all shrink-0 max-w-[140px] xs:max-w-[160px] sm:max-w-[200px]",
+        "relative rounded-full border-primary/20 bg-background/80 backdrop-blur hover:bg-accent/40 h-9 w-9 p-0 transition-all shrink-0",
         className
       )}
     >
       {loadingGps ? (
-        <Loader2 className="h-3.5 w-3.5 text-primary animate-spin shrink-0" />
+        <Loader2 className="h-4 w-4 text-primary animate-spin" />
       ) : (
-        <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+        <MapPin className="h-4 w-4 text-primary" />
       )}
-      <span className="text-xs font-semibold text-foreground truncate max-w-[70px] xs:max-w-[90px] sm:max-w-[130px]">
-        {currentLabel}
-      </span>
       {isTzMismatched && (
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" title={t("tzMismatch", lang)} />
+        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-amber-500 ring-1 ring-background" title={t("tzMismatch", lang)} />
       )}
     </Button>
   );

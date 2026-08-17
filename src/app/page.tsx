@@ -34,6 +34,7 @@ import {
   type TimeWindow,
 } from "@/lib/events";
 import { getSystemTimezone, getCityNameFromTimezone } from "@/lib/time-utils";
+import { computeTimingsClient } from "@/lib/client-api";
 import { useState, useEffect } from "react";
 import {
   ArrowLeft,
@@ -52,6 +53,29 @@ const IST_OFFSET = 5.5; // Gujarat is IST = UTC+5:30
 
 type Step = "event" | "method" | "dates" | "results";
 const STEP_ORDER: Step[] = ["event", "method", "dates", "results"];
+
+function LiveHeaderDateTime({
+  lang,
+  tzOffsetHours,
+  tz,
+}: {
+  lang: "en" | "gu";
+  tzOffsetHours: number;
+  tz?: string;
+}) {
+  const [now, setNow] = useState<Date>(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <p className="text-[11px] sm:text-xs font-semibold text-primary/95 truncate whitespace-nowrap pt-0.5">
+      {formatHeaderDateTime(now, lang, tzOffsetHours, tz)}
+    </p>
+  );
+}
 
 function ShubhSamayApp() {
   const { lang, t } = useLang();
@@ -74,13 +98,7 @@ function ShubhSamayApp() {
     return null;
   });
   const [showDefaultLocationDialog, setShowDefaultLocationDialog] = useState(false);
-  const [now, setNow] = useState<Date>(new Date());
-
-  // Live timer for header date & time display
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   const [highlySlots, setHighlySlots] = useState<TimingResult[]>([]);
   const [auspiciousSlots, setAuspiciousSlots] = useState<TimingResult[]>([]);
@@ -89,6 +107,40 @@ function ShubhSamayApp() {
   const [bestRecommendationSlot, setBestRecommendationSlot] = useState<TimingResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // === Android Hardware Back Button & Gesture Navigation ===
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Baseline history entry
+    if (!window.history.state || !window.history.state.step) {
+      window.history.replaceState({ step: "event" }, "");
+    }
+
+    const handlePopState = (e: PopStateEvent) => {
+      // If user was on a sub-step (method, dates, results) and taps Android hardware back button:
+      // Redirect straight back to Home (event)
+      if (step !== "event") {
+        setStep("event");
+        window.history.replaceState({ step: "event" }, "");
+      } else {
+        // If user is on Home (event step) and taps Android hardware back button:
+        // Prevent browser exit and prompt confirmation dialog
+        window.history.pushState({ step: "event" }, "");
+        setShowExitDialog(true);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [step]);
+
+  const changeStep = (newStep: Step) => {
+    if (typeof window !== "undefined" && newStep !== "event") {
+      window.history.pushState({ step: newStep }, "");
+    }
+    setStep(newStep);
+  };
 
   // Initial location load & first-launch GPS permission handling
   useEffect(() => {
@@ -154,11 +206,11 @@ function ShubhSamayApp() {
     if (id === "others") {
       // Skip method selection, default to "all"
       setMethods(["all"]);
-      setStep("dates");
+      changeStep("dates");
     } else {
       // Pre-fill methods with "auto" so user can just hit Next
       setMethods(["auto"]);
-      setStep("method");
+      changeStep("method");
     }
   };
 
@@ -173,19 +225,19 @@ function ShubhSamayApp() {
   const next = async () => {
     if (step === "dates") {
       await fetchResults();
-      setStep("results");
+      changeStep("results");
       return;
     }
     const nextIdx = stepIdx + 1;
-    if (nextIdx < STEP_ORDER.length) setStep(STEP_ORDER[nextIdx]);
+    if (nextIdx < STEP_ORDER.length) changeStep(STEP_ORDER[nextIdx]);
   };
 
   const back = () => {
-    if (stepIdx > 0) setStep(STEP_ORDER[stepIdx - 1]);
+    if (stepIdx > 0) changeStep(STEP_ORDER[stepIdx - 1]);
   };
 
   const reset = () => {
-    setStep("event");
+    changeStep("event");
     setEventId(null);
     setMethods([]);
     setDates([]);
@@ -228,10 +280,31 @@ function ShubhSamayApp() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/timings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      let data: any = null;
+      try {
+        const res = await fetch("/api/timings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: eventId,
+            methods: ms,
+            dates: ds.map((d) => d.toISOString()),
+            city,
+            tzOffsetHours: IST_OFFSET,
+            lang,
+            timeWindow: tw ?? undefined,
+          }),
+        });
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch {
+        // Fallback to client-side calculation when static/offline
+      }
+
+      if (!data || !data.ok) {
+        if (!eventId || !city) throw new Error("Missing required event or location selection");
+        data = computeTimingsClient({
           event: eventId,
           methods: ms,
           dates: ds.map((d) => d.toISOString()),
@@ -239,10 +312,10 @@ function ShubhSamayApp() {
           tzOffsetHours: IST_OFFSET,
           lang,
           timeWindow: tw ?? undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "Failed to fetch");
+        });
+      }
+
+      if (!data.ok) throw new Error(data.error || "Failed to calculate timings");
       setHighlySlots(data.highly || []);
       setAuspiciousSlots(data.auspicious || []);
       setGoodSlots(data.good || []);
@@ -310,25 +383,23 @@ function ShubhSamayApp() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-border/60 shadow-2xs">
-        <div className="max-w-2xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5 leading-tight min-w-0 flex-1">
+        <div className="max-w-2xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-2 sm:gap-2.5 leading-tight min-w-0 flex-1">
             <Image
               src="/logo.png"
               alt="Shubh Samay Logo"
               width={36}
               height={36}
-              className="rounded-lg shrink-0 border border-primary/20 shadow-2xs"
+              className="rounded-lg shrink-0 border border-primary/20 shadow-2xs w-8 h-8 sm:w-9 sm:h-9"
             />
             <div className="min-w-0 flex-1">
-              <h1 className="font-bold text-base sm:text-lg text-foreground truncate">
+              <h1 className="font-bold text-sm xs:text-base sm:text-lg text-foreground truncate whitespace-nowrap">
                 {lang === "gu" ? "આજનું પંચાંગ" : "Today's Panchang"}
               </h1>
-              <p className="text-xs font-semibold text-primary/95 truncate pt-0.5">
-                {formatHeaderDateTime(now, lang, IST_OFFSET, city?.tz)}
-              </p>
+              <LiveHeaderDateTime lang={lang} tzOffsetHours={IST_OFFSET} tz={city?.tz} />
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <LocationSearch
               value={city}
               onChange={handleCityChange}
@@ -430,7 +501,7 @@ function ShubhSamayApp() {
                   : undefined
               }
               onReset={reset}
-              onChangeDateAndTime={() => setStep("dates")}
+              onChangeDateAndTime={() => changeStep("dates")}
             />
           )}
         </Card>
@@ -486,17 +557,17 @@ function ShubhSamayApp() {
             <Button
               onClick={next}
               disabled={!canProceed() || loading}
-              className="flex-1 gap-2 bg-primary hover:bg-primary/90"
+              className="flex-1 min-w-0 gap-1.5 sm:gap-2 bg-primary hover:bg-primary/90 text-xs sm:text-sm font-semibold px-2.5 sm:px-4 py-2 sm:py-2.5 h-9 sm:h-10 shadow-sm"
             >
               {step === "dates" ? (
                 <>
-                  <Sparkles className="h-4 w-4" />
-                  {t("findTimings")}
+                  <Moon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{t("findTimings")}</span>
                 </>
               ) : (
                 <>
-                  {t("next")}
-                  <ArrowRight className="h-4 w-4" />
+                  <span>{t("next")}</span>
+                  <ArrowRight className="h-4 w-4 shrink-0" />
                 </>
               )}
             </Button>
@@ -522,6 +593,46 @@ function ShubhSamayApp() {
               className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {t("gotIt")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Android Hardware Back Exit Confirmation Modal */}
+      <Dialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <DialogContent className="max-w-xs sm:max-w-sm p-5 border-primary/25 rounded-2xl">
+          <DialogHeader className="space-y-2 text-center sm:text-left">
+            <DialogTitle className="flex items-center justify-center sm:justify-start gap-2 text-foreground text-base">
+              <Home className="h-5 w-5 text-primary shrink-0" />
+              {lang === "gu" ? "એપમાંથી બહાર નીકળો" : "Exit App"}
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground pt-1 leading-relaxed">
+              {lang === "gu"
+                ? "શું તમે ખરેખર એપમાંથી બહાર નીકળવા માંગો છો?"
+                : "Are you sure you want to exit the app?"}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row items-center justify-end gap-2 pt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowExitDialog(false)}
+              className="flex-1 sm:flex-initial text-xs h-9"
+            >
+              {lang === "gu" ? "રદ કરો" : "Cancel"}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                setShowExitDialog(false);
+                if (typeof window !== "undefined") {
+                  window.history.go(-2);
+                }
+              }}
+              className="flex-1 sm:flex-initial text-xs h-9"
+            >
+              {lang === "gu" ? "બહાર નીકળો" : "Exit"}
             </Button>
           </DialogFooter>
         </DialogContent>

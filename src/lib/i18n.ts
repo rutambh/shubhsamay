@@ -32,7 +32,7 @@ export const STRINGS = {
   // Actions
   next: { en: "Next", gu: "આગળ" },
   back: { en: "Back", gu: "પાછળ" },
-  findTimings: { en: "Find Auspicious Timings", gu: "શુભ સમય શોધો" },
+  findTimings: { en: "Auspicious Timing", gu: "શુભ સમય" },
   startOver: { en: "Start Over", gu: "ફરી શરૂ કરો" },
   changeDateAndTime: { en: "Change date and time", gu: "તારીખ અને સમય બદલો" },
   addDate: { en: "Add Date", gu: "તારીખ ઉમેરો" },
@@ -43,7 +43,7 @@ export const STRINGS = {
   language: { en: "ગુજરાતી", gu: "English" },
 
   // Date modes
-  modeIndividual: { en: "Individual Dates", gu: "જુદી જુદી તારીખો" },
+  modeIndividual: { en: "Individual Date", gu: "એક તારીખ" },
   modeRange: { en: "Date Range", gu: "તારીખ સમયગાળો" },
   startDate: { en: "Start Date", gu: "શરૂ તારીખ" },
   endDate: { en: "End Date", gu: "અંતિમ તારીખ" },

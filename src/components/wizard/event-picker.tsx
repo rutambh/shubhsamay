@@ -38,8 +38,8 @@ export function EventPicker({ value, onChange, onSelect }: Props) {
             }}
             aria-pressed={selected}
             className={cn(
-              "cursor-pointer p-4 transition-all hover:shadow-md hover:-translate-y-0.5",
-              "flex flex-col items-center text-center gap-2",
+              "cursor-pointer p-3 sm:p-4 transition-all hover:shadow-md hover:-translate-y-0.5",
+              "flex flex-col items-center text-center justify-center gap-1.5 min-h-[96px]",
               isOthers
                 ? "border-dashed border-2 border-primary/40 bg-accent/10"
                 : "border-border bg-card/80",
@@ -53,9 +53,6 @@ export function EventPicker({ value, onChange, onSelect }: Props) {
             </span>
             <span className="font-semibold text-sm leading-tight text-foreground">
               {lang === "gu" ? ev.name_gu : ev.name_en}
-            </span>
-            <span className="text-[11px] text-muted-foreground leading-tight">
-              {lang === "gu" ? ev.description_gu : ev.description_en}
             </span>
           </Card>
         );

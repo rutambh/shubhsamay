@@ -64,6 +64,15 @@ export interface EventDef {
 
 export const EVENTS: EventDef[] = [
   {
+    id: "others",
+    name_en: "Others",
+    name_gu: "અન્ય",
+    emoji: "✨",
+    description_en: "Not sure? We'll find general auspicious timing",
+    description_gu: "ખાતરી નથી? સામાન્ય શુભ સમય શોધીએ",
+    recommendedMethods: ["choghadiya", "hora"],
+  },
+  {
     id: "marriage",
     name_en: "Marriage / Wedding",
     name_gu: "લગ્ન",
@@ -228,15 +237,6 @@ export const EVENTS: EventDef[] = [
     emoji: "🏥",
     description_en: "Avoid Rahu Kaal & inauspicious times for medical procedures",
     description_gu: "સારવાર માટે રાહુ કાળ ટાળો",
-    recommendedMethods: ["choghadiya", "hora"],
-  },
-  {
-    id: "others",
-    name_en: "Others",
-    name_gu: "અન્ય",
-    emoji: "✨",
-    description_en: "Not sure? We'll find general auspicious timing",
-    description_gu: "ખાતરી નથી? સામાન્ય શુભ સમય શોધીએ",
     recommendedMethods: ["choghadiya", "hora"],
   },
 ];
@@ -1048,7 +1048,7 @@ export interface CityDef {
 }
 
 export const CITIES: CityDef[] = [
-  // Gujarat
+  // All 33 Districts of Gujarat + Key Hubs
   { name_en: "Ahmedabad", name_gu: "અમદાવાદ", lat: 23.0225, lng: 72.5714, state: "Gujarat", tz: "Asia/Kolkata" },
   { name_en: "Surat", name_gu: "સુરત", lat: 21.1702, lng: 72.8311, state: "Gujarat", tz: "Asia/Kolkata" },
   { name_en: "Vadodara", name_gu: "વડોદરા", lat: 22.3072, lng: 73.1812, state: "Gujarat", tz: "Asia/Kolkata" },
@@ -1057,47 +1057,100 @@ export const CITIES: CityDef[] = [
   { name_en: "Jamnagar", name_gu: "જામનગર", lat: 22.4707, lng: 70.0577, state: "Gujarat", tz: "Asia/Kolkata" },
   { name_en: "Junagadh", name_gu: "જૂનાગઢ", lat: 21.5222, lng: 70.4579, state: "Gujarat", tz: "Asia/Kolkata" },
   { name_en: "Gandhinagar", name_gu: "ગાંધીનગર", lat: 23.2156, lng: 72.6369, state: "Gujarat", tz: "Asia/Kolkata" },
-  { name_en: "Anand", name_gu: "આનંદ", lat: 22.5645, lng: 72.9289, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Anand", name_gu: "આણંદ", lat: 22.5645, lng: 72.9289, state: "Gujarat", tz: "Asia/Kolkata" },
   { name_en: "Nadiad", name_gu: "નડિયાદ", lat: 22.6916, lng: 72.8634, state: "Gujarat", tz: "Asia/Kolkata" },
   { name_en: "Mehsana", name_gu: "મહેસાણા", lat: 23.5926, lng: 72.3809, state: "Gujarat", tz: "Asia/Kolkata" },
   { name_en: "Bharuch", name_gu: "ભરૂચ", lat: 21.7051, lng: 72.9969, state: "Gujarat", tz: "Asia/Kolkata" },
-  { name_en: "Vapi", name_gu: "વાપી", lat: 20.3893, lng: 72.9096, state: "Gujarat", tz: "Asia/Kolkata" },
-  { name_en: "Gandhidham", name_gu: "ગાંધીધામ", lat: 23.0772, lng: 70.1304, state: "Gujarat", tz: "Asia/Kolkata" },
-  { name_en: "Bhuj", name_gu: "ભુજ", lat: 23.2420, lng: 69.6669, state: "Gujarat", tz: "Asia/Kolkata" },
-  { name_en: "Porbandar", name_gu: "પોરબંદર", lat: 21.6417, lng: 69.6293, state: "Gujarat", tz: "Asia/Kolkata" },
-  { name_en: "Veraval", name_gu: "વેરાવળ", lat: 20.9080, lng: 70.3685, state: "Gujarat", tz: "Asia/Kolkata" },
-  { name_en: "Morbi", name_gu: "મોરબી", lat: 22.8115, lng: 70.8378, state: "Gujarat", tz: "Asia/Kolkata" },
-  { name_en: "Patan", name_gu: "પાટણ", lat: 23.8512, lng: 72.1214, state: "Gujarat", tz: "Asia/Kolkata" },
-  { name_en: "Godhra", name_gu: "ગોધરા", lat: 22.7788, lng: 73.6143, state: "Gujarat", tz: "Asia/Kolkata" },
   { name_en: "Navsari", name_gu: "નવસારી", lat: 20.9517, lng: 72.9377, state: "Gujarat", tz: "Asia/Kolkata" },
   { name_en: "Valsad", name_gu: "વલસાડ", lat: 20.5992, lng: 72.9342, state: "Gujarat", tz: "Asia/Kolkata" },
-  { name_en: "Palanpur", name_gu: "પાલનપુર", lat: 24.1755, lng: 72.4317, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Vapi", name_gu: "વાપી", lat: 20.3893, lng: 72.9096, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Palanpur", name_gu: "પાલનપુર (બનાસકાંઠા)", lat: 24.1755, lng: 72.4317, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Himatnagar", name_gu: "હિંમતનગર (સાબરકાંઠા)", lat: 23.5977, lng: 72.9698, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Patan", name_gu: "પાટણ", lat: 23.8512, lng: 72.1214, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Porbandar", name_gu: "પોરબંદર", lat: 21.6417, lng: 69.6293, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Veraval", name_gu: "વેરાવળ (ગીર સોમનાથ)", lat: 20.9080, lng: 70.3685, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Morbi", name_gu: "મોરબી", lat: 22.8115, lng: 70.8378, state: "Gujarat", tz: "Asia/Kolkata" },
   { name_en: "Surendranagar", name_gu: "સુરેન્દ્રનગર", lat: 22.7285, lng: 71.6375, state: "Gujarat", tz: "Asia/Kolkata" },
-  // Major India cities
+  { name_en: "Amreli", name_gu: "અમરેલી", lat: 21.6032, lng: 71.2221, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Botad", name_gu: "બોટાદ", lat: 22.1704, lng: 71.6661, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Bhuj", name_gu: "ભુજ (કચ્છ)", lat: 23.2420, lng: 69.6669, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Gandhidham", name_gu: "ગાંધીધામ", lat: 23.0772, lng: 70.1304, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Godhra", name_gu: "ગોધરા (પંચમહાલ)", lat: 22.7788, lng: 73.6143, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Dahod", name_gu: "દાહોદ", lat: 22.8347, lng: 74.2554, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Chhota Udaipur", name_gu: "છોટા ઉદેપુર", lat: 22.3070, lng: 74.0137, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Rajpipla", name_gu: "રાજપીપળા (નર્મદા)", lat: 21.7915, lng: 73.5701, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Vyara", name_gu: "વ્યારા (તાપી)", lat: 21.1189, lng: 73.3934, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Ahwa", name_gu: "આહવા (ડાંગ)", lat: 20.7570, lng: 73.6844, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Khambhalia", name_gu: "ખંભાળિયા (દેવભૂમિ દ્વારકા)", lat: 22.2045, lng: 69.6542, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Modasa", name_gu: "મોડાસા (અરવલ્લી)", lat: 23.4635, lng: 73.2984, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Lunawada", name_gu: "લુણાવાડા (મહીસાગર)", lat: 23.1355, lng: 73.6133, state: "Gujarat", tz: "Asia/Kolkata" },
+  { name_en: "Ankleshwar", name_gu: "અંકલેશ્વર", lat: 21.6264, lng: 73.0033, state: "Gujarat", tz: "Asia/Kolkata" },
+
+  // Top Major Cities of India
   { name_en: "Mumbai", name_gu: "મુંબઈ", lat: 19.0760, lng: 72.8777, state: "Maharashtra", tz: "Asia/Kolkata" },
   { name_en: "Delhi", name_gu: "દિલ્હી", lat: 28.6139, lng: 77.2090, state: "Delhi", tz: "Asia/Kolkata" },
-  { name_en: "Pune", name_gu: "પુણે", lat: 18.5204, lng: 73.8567, state: "Maharashtra", tz: "Asia/Kolkata" },
   { name_en: "Bengaluru", name_gu: "બેંગ્લોર", lat: 12.9716, lng: 77.5946, state: "Karnataka", tz: "Asia/Kolkata" },
+  { name_en: "Pune", name_gu: "પુણે", lat: 18.5204, lng: 73.8567, state: "Maharashtra", tz: "Asia/Kolkata" },
+  { name_en: "Hyderabad", name_gu: "હૈદરાબાદ", lat: 17.3850, lng: 78.4867, state: "Telangana", tz: "Asia/Kolkata" },
+  { name_en: "Kolkata", name_gu: "કોલકાતા", lat: 22.5726, lng: 88.3639, state: "West Bengal", tz: "Asia/Kolkata" },
+  { name_en: "Chennai", name_gu: "ચેન્નાઈ", lat: 13.0827, lng: 80.2707, state: "Tamil Nadu", tz: "Asia/Kolkata" },
   { name_en: "Jaipur", name_gu: "જયપુર", lat: 26.9124, lng: 75.7873, state: "Rajasthan", tz: "Asia/Kolkata" },
   { name_en: "Udaipur", name_gu: "ઉદયપુર", lat: 24.5854, lng: 73.7125, state: "Rajasthan", tz: "Asia/Kolkata" },
-  // Major International Cities
-  { name_en: "London", name_gu: "લંડન", lat: 51.5074, lng: -0.1278, state: "United Kingdom", tz: "Europe/London" },
+
+  // USA Major Cities
   { name_en: "New York", name_gu: "ન્યૂ યોર્ક", lat: 40.7128, lng: -74.0060, state: "USA", tz: "America/New_York" },
   { name_en: "San Francisco", name_gu: "સેન ફ્રાન્સિસ્કો", lat: 37.7749, lng: -122.4194, state: "USA", tz: "America/Los_Angeles" },
+  { name_en: "Los Angeles", name_gu: "લોસ એન્જલસ", lat: 34.0522, lng: -118.2437, state: "USA", tz: "America/Los_Angeles" },
   { name_en: "Chicago", name_gu: "શિકાગો", lat: 41.8781, lng: -87.6298, state: "USA", tz: "America/Chicago" },
+  { name_en: "Houston", name_gu: "હ્યુસ્ટન", lat: 29.7604, lng: -95.3698, state: "USA", tz: "America/Chicago" },
+  { name_en: "Dallas", name_gu: "ડલ્લાસ", lat: 32.7767, lng: -96.7970, state: "USA", tz: "America/Chicago" },
+
+  // United Kingdom (UK) Major Cities
+  { name_en: "London", name_gu: "લંડન", lat: 51.5074, lng: -0.1278, state: "UK", tz: "Europe/London" },
+  { name_en: "Birmingham", name_gu: "બર્મિંગહામ", lat: 52.4862, lng: -1.8904, state: "UK", tz: "Europe/London" },
+  { name_en: "Manchester", name_gu: "માન્ચેસ્ટર", lat: 53.4808, lng: -2.2426, state: "UK", tz: "Europe/London" },
+  { name_en: "Glasgow", name_gu: "ગ્લાસગો", lat: 55.8642, lng: -4.2518, state: "UK", tz: "Europe/London" },
+  { name_en: "Edinburgh", name_gu: "એડિનબર્ગ", lat: 55.9533, lng: -3.1883, state: "UK", tz: "Europe/London" },
+
+  // Canada Major Cities
   { name_en: "Toronto", name_gu: "ટોરોન્ટો", lat: 43.6532, lng: -79.3832, state: "Canada", tz: "America/Toronto" },
-  { name_en: "Vancouver", name_gu: "વેંકુવર", lat: 49.2827, lng: -123.1207, state: "Canada", tz: "America/Vancouver" },
-  { name_en: "Dubai", name_gu: "દુબઈ", lat: 25.2048, lng: 55.2708, state: "UAE", tz: "Asia/Dubai" },
-  { name_en: "Abu Dhabi", name_gu: "અબુ ધાબી", lat: 24.4539, lng: 54.3773, state: "UAE", tz: "Asia/Dubai" },
-  { name_en: "Riyadh", name_gu: "રિયાધ", lat: 24.7136, lng: 46.6753, state: "Saudi Arabia", tz: "Asia/Riyadh" },
-  { name_en: "Singapore", name_gu: "સિંગાપુર", lat: 1.3521, lng: 103.8198, state: "Singapore", tz: "Asia/Singapore" },
+  { name_en: "Vancouver", name_gu: "વેનકુવર", lat: 49.2827, lng: -123.1207, state: "Canada", tz: "America/Vancouver" },
+  { name_en: "Montreal", name_gu: "મોન્ટ્રીયલ", lat: 45.5017, lng: -73.5673, state: "Canada", tz: "America/Montreal" },
+  { name_en: "Calgary", name_gu: "કેલગરી", lat: 51.0447, lng: -114.0719, state: "Canada", tz: "America/Edmonton" },
+  { name_en: "Ottawa", name_gu: "ઓટ્ટાવા", lat: 45.4215, lng: -75.6972, state: "Canada", tz: "America/Toronto" },
+
+  // Australia Major Cities
   { name_en: "Sydney", name_gu: "સિડની", lat: -33.8688, lng: 151.2093, state: "Australia", tz: "Australia/Sydney" },
   { name_en: "Melbourne", name_gu: "મેલબોર્ન", lat: -37.8136, lng: 144.9631, state: "Australia", tz: "Australia/Melbourne" },
+  { name_en: "Brisbane", name_gu: "બ્રિસ્બેન", lat: -27.4698, lng: 153.0251, state: "Australia", tz: "Australia/Brisbane" },
+  { name_en: "Perth", name_gu: "પર્થ", lat: -31.9505, lng: 115.8605, state: "Australia", tz: "Australia/Perth" },
+  { name_en: "Adelaide", name_gu: "એડિલેડ", lat: -34.9285, lng: 138.6007, state: "Australia", tz: "Australia/Adelaide" },
+
+  // UAE & Gulf Major Cities
+  { name_en: "Dubai", name_gu: "દુબઈ", lat: 25.2048, lng: 55.2708, state: "UAE", tz: "Asia/Dubai" },
+  { name_en: "Abu Dhabi", name_gu: "અબુ ધાબી", lat: 24.4539, lng: 54.3773, state: "UAE", tz: "Asia/Dubai" },
+  { name_en: "Sharjah", name_gu: "શારજાહ", lat: 25.3463, lng: 55.4209, state: "UAE", tz: "Asia/Dubai" },
+  { name_en: "Riyadh", name_gu: "રિયાધ", lat: 24.7136, lng: 46.6753, state: "Saudi Arabia", tz: "Asia/Riyadh" },
+  { name_en: "Doha", name_gu: "દોહા", lat: 25.2854, lng: 51.5310, state: "Qatar", tz: "Asia/Qatar" },
+
+  // New Zealand Major Cities
   { name_en: "Auckland", name_gu: "ઓકલેન્ડ", lat: -36.8485, lng: 174.7633, state: "New Zealand", tz: "Pacific/Auckland" },
-  { name_en: "Tokyo", name_gu: "ટોક્યો", lat: 35.6762, lng: 139.6503, state: "Japan", tz: "Asia/Tokyo" },
-  { name_en: "Bangkok", name_gu: "બેંગકોક", lat: 13.7563, lng: 100.5018, state: "Thailand", tz: "Asia/Bangkok" },
+  { name_en: "Wellington", name_gu: "વેલિંગ્ટન", lat: -41.2865, lng: 174.7762, state: "New Zealand", tz: "Pacific/Auckland" },
+  { name_en: "Christchurch", name_gu: "ક્રાઇસ્ટચર્ચ", lat: -43.5321, lng: 172.6362, state: "New Zealand", tz: "Pacific/Auckland" },
+
+  // Europe Major Cities
   { name_en: "Paris", name_gu: "પેરિસ", lat: 48.8566, lng: 2.3522, state: "France", tz: "Europe/Paris" },
   { name_en: "Frankfurt", name_gu: "ફ્રેન્કફર્ટ", lat: 50.1109, lng: 8.6821, state: "Germany", tz: "Europe/Berlin" },
+  { name_en: "Berlin", name_gu: "બર્લિન", lat: 52.5200, lng: 13.4050, state: "Germany", tz: "Europe/Berlin" },
+  { name_en: "Amsterdam", name_gu: "એમ્સ્ટરડેમ", lat: 52.3676, lng: 4.9041, state: "Netherlands", tz: "Europe/Amsterdam" },
+  { name_en: "Zurich", name_gu: "ઝ્યુરિચ", lat: 47.3769, lng: 8.5417, state: "Switzerland", tz: "Europe/Zurich" },
+
+  // Asia-Pacific Major Cities
+  { name_en: "Singapore", name_gu: "સિંગાપુર", lat: 1.3521, lng: 103.8198, state: "Singapore", tz: "Asia/Singapore" },
+  { name_en: "Tokyo", name_gu: "ટોક્યો", lat: 35.6762, lng: 139.6503, state: "Japan", tz: "Asia/Tokyo" },
+  { name_en: "Bangkok", name_gu: "બેંગકોક", lat: 13.7563, lng: 100.5018, state: "Thailand", tz: "Asia/Bangkok" },
+  { name_en: "Kuala Lumpur", name_gu: "કુઆલાલમ્પુર", lat: 3.1390, lng: 101.6869, state: "Malaysia", tz: "Asia/Kuala_Lumpur" },
+  { name_en: "Hong Kong", name_gu: "હોંગ કોંગ", lat: 22.3193, lng: 114.1694, state: "Hong Kong", tz: "Asia/Hong_Kong" },
 ];
 
 /**

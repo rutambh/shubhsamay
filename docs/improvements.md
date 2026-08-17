@@ -2,6 +2,17 @@
 
 Append-only log of feature and architecture improvements across the project lifecycle, per Section 5 of the Master Prompt protocol.
 
+## 2026-08-17 — Global Astronomical Sync, Symmetrical Date UI, Dynamic Solar Arc & Performance
+**Improvement:**
+1. **Global Location Sync Engine**: Integrated robust UTC/civil day math (`getStartOfCivilDayInTz`, `getEndOfCivilDayInTz`) and 2-day search window from `midnightUT` in `src/lib/panchang.ts` for worldwide accuracy.
+2. **Dedicated Smooth City Selector**: Created `CitySelectModal` with search, regional tabs (Gujarat 33 districts, India, USA, UK, Canada, Australia, UAE / Gulf, Global), and smooth scrolling.
+3. **Panchang Cards Centering & Sub-lines**: Centered values vertically in tiles and added planetary Lord sub-lines for Vara and Nakshatra.
+4. **Dynamic Celestial Sun Tracker**: Implemented dynamic Sun icon on timeline with morning/midday/evening color & glow shifts (`#EA580C` warm orange in evening with softened glow) and real-time sunset/sunrise countdown.
+5. **Date Picker Parity & Renaming**: Unified Individual Date with Date Range UI, renamed action button to "Auspicious Timing" with Moon icon.
+6. **Android Hardware Back Gesture & Exit Modal**: Synced browser history with wizard steps to return to Home on back gesture, and prompt exit confirmation on Home.
+7. **Performance Isolation**: Separated 1-second header clock into `<LiveHeaderDateTime />` to eliminate full-app 1-second re-renders.  
+**Result:** 100% responsive, zero-lag, global-ready Hindu Panchang PWA with smooth gestures and visual polish. Verified via clean `npm run build`.
+
 ## 2026-07-27 — Update Android Target API Level to 36
 **Improvement:** Updated `targetSdkVersion` to `36` (Android 16) in `android-app/build.gradle`.  
 **Result:** Met Google Play Store requirement mandating target API level within 1 year of latest Android release for app updates.

@@ -71,3 +71,8 @@ docs/cicd/secrets/*
 /build/
 android-app/build/
 *.jks
+
+Dartrebuilt
+.md 
+.MD 
+docs 

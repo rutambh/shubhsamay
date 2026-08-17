@@ -276,20 +276,36 @@ export function DateRangePicker({
         )}
       </Card>
 
-      {/* Add Date button (individual mode) */}
-      {mode === "individual" && pendingDate && (
-        <div className="flex justify-center">
+      {/* Add Date button & helper status — Individual Date mode */}
+      {mode === "individual" && (
+        <div className="flex flex-col items-center gap-2">
+          <div className="text-xs font-medium text-center">
+            {pendingDate ? (
+              <span className="text-emerald-600 dark:text-emerald-400">
+                👉 {lang === "gu" ? "પસંદ કરેલ તારીખ" : "Selected Date"}: {format(pendingDate, "d MMM yyyy")} — {lang === "gu" ? "તારીખ ઉમેરો બટન દબાવો" : "Tap Add Date to include"}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">
+                {lang === "gu" ? "કેલેન્ડર પર તારીખ પસંદ કરો" : "Select a date on the calendar"}
+              </span>
+            )}
+          </div>
+
           <Button
             onClick={confirmAddDate}
-            disabled={dates.some(
-              (d) => d.toDateString() === new Date(pendingDate).toDateString()
-            )}
+            disabled={
+              !pendingDate ||
+              dates.some(
+                (d) => d.toDateString() === new Date(pendingDate).toDateString()
+              )
+            }
             variant="default"
             size="sm"
             className="gap-2"
           >
             <Check className="h-4 w-4" />
-            {dates.some(
+            {pendingDate &&
+            dates.some(
               (d) => d.toDateString() === new Date(pendingDate).toDateString()
             )
               ? t("alreadyAdded")
@@ -331,21 +347,22 @@ export function DateRangePicker({
         </div>
       )}
 
-      {/* Clear button — Range mode only when dates are selected */}
-      {mode === "range" && dates.length > 0 && (
+      {/* Clear button — shown when dates are selected */}
+      {dates.length > 0 && (
         <div className="flex justify-center">
           <Button
             onClick={() => {
               onChange([]);
               setRangeStart(null);
               setRangeEnd(null);
+              setPendingDate(undefined);
             }}
             variant="ghost"
             size="sm"
             className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
           >
             <Trash2 className="h-3.5 w-3.5" />
-            {lang === "gu" ? "સાફ કરો" : "Clear Range"}
+            {lang === "gu" ? "સાફ કરો" : "Clear All"}
           </Button>
         </div>
       )}
@@ -360,6 +377,7 @@ export function DateRangePicker({
                 variant="secondary"
                 className="gap-1.5 py-1.5 px-3 bg-accent/40 text-accent-foreground text-sm"
               >
+                <CalendarDays className="h-3.5 w-3.5 shrink-0 text-primary" />
                 {format(d, "EEE, d MMM yyyy")}
                 <button
                   onClick={() => removeDate(i)}
@@ -375,7 +393,7 @@ export function DateRangePicker({
               variant="secondary"
               className="gap-1.5 py-1.5 px-3 bg-accent/40 text-accent-foreground text-sm"
             >
-              <CalendarRange className="h-3.5 w-3.5 shrink-0" />
+              <CalendarRange className="h-3.5 w-3.5 shrink-0 text-primary" />
               {format(dates[0], "d MMM")} – {format(dates[dates.length - 1], "d MMM yyyy")} ({dates.length} {lang === "gu" ? "દિવસ" : "days"})
             </Badge>
           )}
