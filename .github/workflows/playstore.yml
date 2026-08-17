@@ -1,4 +1,4 @@
-name: Build & Deploy Flutter App to Google Play Store
+name: Build & Deploy Android App to Google Play Store
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build-and-deploy:
-    name: Build Flutter & Deploy AAB to Play Store
+    name: Build Next.js & Deploy Android AAB to Play Store
     runs-on: ubuntu-latest
 
     steps:
@@ -20,53 +20,60 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Lint Check
+        run: npm run lint
+
+      - name: Build Web App & Sync Android Assets
+        run: npm run build:android
+
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter SDK
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: Install Flutter Dependencies
-        run: |
-          cd Dartrebuilt/app
-          flutter pub get
-
-      - name: Run Flutter Tests
-        run: |
-          cd Dartrebuilt/app
-          flutter test
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
       - name: Decode Keystore File
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          python3 -c "import base64, os; open('Dartrebuilt/app/android/rutambhapps.jks', 'wb').write(base64.b64decode(os.environ['KEYSTORE_BASE64']))"
+          python3 -c "import base64, os; os.environ.get('KEYSTORE_BASE64') and open('rutambhapps.jks', 'wb').write(base64.b64decode(os.environ['KEYSTORE_BASE64']))"
 
       - name: Build Signed Android App Bundle (AAB)
         env:
+          VERSION_CODE: ${{ github.run_number }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          cd Dartrebuilt/app
-          flutter build appbundle --release --build-number=${{ github.run_number }}
+          ./gradlew bundleRelease
 
       - name: Upload AAB Artifact to GitHub
         uses: actions/upload-artifact@v4
         with:
           name: app-release-signed
-          path: Dartrebuilt/app/build/app/outputs/bundle/release/*.aab
+          path: android-app/build/outputs/bundle/release/*.aab
 
       - name: Upload AAB to Play Store (Internal Testing Track)
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: com.rutambh.shubhsamay
-          releaseFiles: Dartrebuilt/app/build/app/outputs/bundle/release/*.aab
+          releaseFiles: android-app/build/outputs/bundle/release/*.aab
           track: internal
+          whatsNewDirectory: whatsnew
+

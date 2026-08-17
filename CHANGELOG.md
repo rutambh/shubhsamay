@@ -2,6 +2,22 @@
 
 Working log for task summaries per Section 8.3 of the Master Prompt protocol. Entries here are merged into permanent documentation files upon request.
 
+## [2026-08-17] — MINOR: Fixed CI/CD GitHub Actions Play Store Workflow for Next.js & Android
+- **GitHub Actions Workflow Migration (`.github/workflows/playstore.yml`)**:
+  - Removed outdated Flutter build steps and deleted `Dartrebuilt/app` directory reference causing CI action failure.
+  - Replaced pipeline with automated Node.js 20 static export (`npm ci`, `npm run lint`, `npm run build:android`).
+  - Added Java 17 Temurin, Gradle wrapper setup, keystore decoding, and `./gradlew bundleRelease` signed AAB packaging with automatic `VERSION_CODE` from GitHub run number.
+  - Configured AAB artifact archiving and automatic upload to Google Play Store internal testing track.
+- **ESLint Config**: Removed obsolete `Dartrebuilt/**` entry from ignore rules in `eslint.config.mjs`.
+
+## [2026-08-17] — MINOR: Applied Agent Reliability Improvement Guide
+- **Single Source of Truth Rule Architecture (Step 1)**:
+  - Preserved global universal behavior rules (Standing Rules 1–19, Multi-location Edit Protocol, MCP & Post-edit Quality Gate) in `~/.gemini/config/rules/agents.md`.
+  - Streamlined project-level `AGENTS.md` to the thin template containing only Shubh Samay project metadata, doc read order, project-specific rules, and active MCP servers.
+  - Copied `AGENTS-improvement-guide.md` to `docs/AGENTS-improvement-guide.md` for permanent documentation.
+- **Hook Enforcement Layer (Step 2)**:
+  - Configured global Antigravity lifecycle hooks in `~/.gemini/config/hooks.json` with `PreToolUse` safety validation scripts (`~/.gemini/config/scripts/hooks/pre-edit-guard.js`) to enforce secret protection and edit verification.
+
 ## [2026-08-17] — MAJOR Update: Global Location Sync Engine, Dedicated Smooth City Selector, Android Hardware Back Navigation, Dynamic Solar Sky Track & Performance Engine
 - **Global Location Engine Sync (`GLOBAL_LOCATION_CHOGHADIYA_HORA_SYNC_GUIDE.md`)**:
   - Implemented `getStartOfCivilDayInTz` and `getEndOfCivilDayInTz` in `src/lib/time-utils.ts` for timezone-safe civil boundary calculations.
