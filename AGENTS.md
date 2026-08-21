@@ -19,7 +19,13 @@ Read one doc at a time, in this order:
 - Astronomy calculations are 100% client-side via `astronomy-engine` in `src/lib/panchang.ts` and `src/lib/client-api.ts`.
 - Timezone safety: Always use `getStartOfCivilDayInTz` and `getEndOfCivilDayInTz` from `src/lib/time-utils.ts` for civil day boundaries.
 
-## Active MCP Knowledge Servers for this project
-- Both `codebase-memory-mcp` and `notebooklm` MCP servers are configured in `mcp_config.json` to launch automatically whenever this IDE starts.
-- **Codebase Memory MCP** (`codebase-memory-mcp`): ALWAYS prefer MCP graph tools (`search_graph`, `trace_path`, `get_code_snippet`) over grep/glob for code discovery, symbol lookup, and call path tracing. Cross-check with grep/ripgrep for symbol count verification.
-- **NotebookLM MCP** (`notebooklm` / `.notebooklm`): Read `.notebooklm` at session start. Query project memory via `notebook_query` for domain rules, business logic, and architectural context before writing code. Save new decisions/bug resolutions via `note`.
+## Active MCP Tools & Skills for this project
+- **CodeGraph MCP** (`codegraph`): Real-time AST code graph & watcher. ALWAYS prefer `codegraph_explore` for instant symbol lookup, call hierarchy tracing, and blast radius before modifying code.
+- **Graphify Skill** (`graphify`): Local offline project memory & knowledge graph generator for `docs/` and architecture notes.
+- **Superpowers Skills** (`superpowers`): Follow `systematic-debugging`, `test-driven-development`, and `verification-before-completion` workflows.
+
+## Design System & Skill Routing (This Project)
+- **UI/UX Stack:** Strictly **Tailwind CSS v4 + shadcn/ui**. Activate `ui-styling` and `ui-ux-pro-max` (color palettes/tokens). Strictly **DISABLE `material-3` / `@material/web` tokens**.
+- **Skill Gating:**
+  - Activate `nextjs-specialist` only when editing Next.js pages/components under `src/app/` or `src/components/`.
+  - Activate `mobile-pwa-developer` only when editing `android-app/`, `twa-manifest.json`, or PWA service workers.

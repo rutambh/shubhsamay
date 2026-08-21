@@ -76,3 +76,6 @@ Dartrebuilt
 .md 
 .MD 
 docs 
+.agents
+AGENTS.md
+graphify-out

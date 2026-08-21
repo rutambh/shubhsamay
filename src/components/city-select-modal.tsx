@@ -10,8 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Search, Check, X, Globe2 } from "lucide-react";
+import { MapPin, Search, Check, X, Globe2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
 
@@ -36,7 +35,7 @@ export function CitySelectModal({
 
   const categories: { key: CategoryKey; label_en: string; label_gu: string }[] = [
     { key: "all", label_en: "All", label_gu: "બધા" },
-    { key: "gujarat", label_en: "Gujarat (33)", label_gu: "ગુજરાત (૩૩)" },
+    { key: "gujarat", label_en: "Gujarat (33 Districts)", label_gu: "ગુજરાત (૩૩ જિલ્લા)" },
     { key: "india", label_en: "India", label_gu: "ભારત" },
     { key: "usa", label_en: "USA", label_gu: "યુએસએ" },
     { key: "uk", label_en: "UK", label_gu: "યુકે" },
@@ -50,7 +49,7 @@ export function CitySelectModal({
     let list = CITIES;
     const q = query.toLowerCase().trim();
 
-    // 1. Category Filter
+    // Category Filter
     if (activeCategory !== "all") {
       if (activeCategory === "gujarat") {
         list = list.filter((c) => c.state === "Gujarat");
@@ -83,7 +82,7 @@ export function CitySelectModal({
       }
     }
 
-    // 2. Query Search
+    // Query Search
     if (!q) return list;
     return list.filter(
       (c) =>
@@ -94,34 +93,41 @@ export function CitySelectModal({
     );
   }, [query, activeCategory]);
 
+  const handleSelect = (c: CityDef) => {
+    onCitySelect(c);
+    onOpenChange(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 gap-0 border-primary/25 overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[80vh]">
-        <DialogHeader className="p-4 sm:p-5 border-b border-border/60 shrink-0 bg-background">
-          <DialogTitle className="flex items-center gap-2 text-foreground text-base sm:text-lg">
-            <Globe2 className="h-5 w-5 text-primary shrink-0" />
-            {t("selectCity")}
+      <DialogContent className="max-w-lg p-0 gap-0 border border-primary/30 rounded-3xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[80vh] bg-card/95 backdrop-blur-2xl shadow-2xl">
+        <DialogHeader className="p-4 sm:p-5 border-b border-border/60 dark:border-white/10 shrink-0 bg-background/80 backdrop-blur-md">
+          <DialogTitle className="flex items-center gap-2.5 text-foreground text-base sm:text-lg font-extrabold tracking-tight">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              <Globe2 className="h-4 w-4" />
+            </div>
+            <span>{t("selectCity")}</span>
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             {lang === "gu"
-              ? "ગુજરાતના તમામ જિલ્લાઓ તથા દેશ-વિદેશના મુખ્ય શહેરોમાંથી પસંદ કરો"
+              ? "ગુજરાતના તમામ ૩૩ જિલ્લાઓ તથા વૈશ્વિક શહેરોમાંથી સ્થાન પસંદ કરો"
               : "Choose from all 33 Gujarat districts and major global cities worldwide"}
           </DialogDescription>
 
           {/* Search bar */}
           <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={lang === "gu" ? "શહેર કે જિલ્લો શોધો..." : "Search city, district, country..."}
-              className="pl-9 pr-8 h-10 text-sm bg-muted/40 border-primary/20 focus-visible:ring-primary"
+              placeholder={lang === "gu" ? "શહેર કે જિલ્લો શોધો (અમદાવાદ, સુરત, લંડન)..." : "Search city, district, country..."}
+              className="pl-10 pr-9 h-10 text-xs sm:text-sm bg-secondary/35 dark:bg-secondary/20 border-primary/25 rounded-2xl focus-visible:ring-primary shadow-xs text-foreground"
             />
             {query && (
               <button
                 onClick={() => setQuery("")}
                 aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -129,16 +135,16 @@ export function CitySelectModal({
           </div>
 
           {/* Category tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto fancy-scroll pt-2.5 pb-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto fancy-scroll pt-2.5 pb-0.5">
             {categories.map((cat) => (
               <button
                 key={cat.key}
                 onClick={() => setActiveCategory(cat.key)}
                 className={cn(
-                  "px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors shrink-0",
+                  "px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer border",
                   activeCategory === cat.key
-                    ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
-                    : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                    : "bg-secondary/35 text-muted-foreground border-border/50 hover:text-foreground dark:bg-secondary/20 dark:border-white/10"
                 )}
               >
                 {lang === "gu" ? cat.label_gu : cat.label_en}
@@ -147,93 +153,63 @@ export function CitySelectModal({
           </div>
         </DialogHeader>
 
-        {/* Scrollable list of cities */}
-        <div
-          tabIndex={0}
-          className="flex-1 overflow-y-auto overscroll-contain fancy-scroll p-2 sm:p-3 space-y-1 touch-pan-y focus:outline-hidden"
-          style={{ WebkitOverflowScrolling: "touch" }}
-        >
+        {/* City list */}
+        <div className="p-3 sm:p-4 overflow-y-auto fancy-scroll space-y-1.5 flex-1 max-h-[50vh]">
           {filteredCities.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground space-y-2">
-              <MapPin className="h-8 w-8 mx-auto text-muted-foreground/40" />
-              <p className="text-sm font-medium">
-                {lang === "gu" ? "કોઈ શહેર મળ્યું નથી" : "No cities found"}
-              </p>
-              <p className="text-xs">
-                {lang === "gu" ? "અન્ય નામથી શોધો" : "Try a different search term"}
+            <div className="text-center py-10 space-y-2">
+              <MapPin className="h-8 w-8 text-muted-foreground mx-auto opacity-50" />
+              <p className="text-sm font-semibold text-muted-foreground">
+                {lang === "gu" ? "કોઈ શહેર મળ્યું નથી" : "No matching cities found"}
               </p>
             </div>
           ) : (
-            filteredCities.map((c) => {
-              const isSelected = selectedCity?.name_en === c.name_en && selectedCity?.state === c.state;
+            filteredCities.map((c, i) => {
+              const isSelected =
+                selectedCity &&
+                selectedCity.name_en === c.name_en &&
+                selectedCity.state === c.state;
+
               return (
                 <button
-                  key={`${c.name_en}-${c.state}-${c.lat}`}
-                  onClick={() => {
-                    onCitySelect(c);
-                    onOpenChange(false);
-                  }}
+                  key={`${c.name_en}-${c.state}-${i}`}
+                  onClick={() => handleSelect(c)}
                   className={cn(
-                    "w-full text-left p-2.5 sm:p-3 rounded-lg flex items-center justify-between gap-3 transition-all border",
+                    "w-full p-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition-all cursor-pointer",
                     isSelected
-                      ? "bg-primary/10 border-primary/40 text-foreground font-semibold shadow-2xs"
-                      : "bg-card/60 hover:bg-muted/60 border-border/50 text-foreground"
+                      ? "bg-primary/15 border-primary text-primary font-bold shadow-xs scale-[1.01]"
+                      : "bg-card/75 dark:bg-card/50 border-border/60 dark:border-white/10 hover:bg-secondary/40 text-foreground"
                   )}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={cn(
-                        "p-2 rounded-full shrink-0",
-                        isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                        "w-8 h-8 rounded-xl flex items-center justify-center text-xs shrink-0 font-bold",
+                        isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary/50 text-muted-foreground"
                       )}
                     >
-                      <MapPin className="h-4 w-4" />
+                      {c.name_en.slice(0, 2).toUpperCase()}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm sm:text-base font-bold truncate">
-                          {lang === "gu" ? c.name_gu : c.name_en}
-                        </p>
-                        {lang !== "gu" && (
-                          <span className="text-xs text-muted-foreground/80 font-normal truncate hidden xs:inline">
-                            {c.name_gu}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] sm:text-xs text-muted-foreground truncate pt-0.5">
+                    <div className="min-w-0">
+                      <p className="font-extrabold text-xs sm:text-sm text-foreground truncate">
+                        {lang === "gu" ? c.name_gu : c.name_en}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
                         {c.state} • {c.tz || "Asia/Kolkata"}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {c.state === "Gujarat" && (
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] bg-primary/10 text-primary border-primary/20 font-medium px-2 py-0.5"
-                      >
-                        Gujarat
-                      </Badge>
-                    )}
-                    {isSelected && (
-                      <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-2xs">
-                        <Check className="h-3.5 w-3.5" />
-                      </div>
-                    )}
-                  </div>
+                  {isSelected && (
+                    <div className="flex items-center gap-1 text-primary shrink-0">
+                      <Check className="h-4 w-4" />
+                    </div>
+                  )}
                 </button>
               );
             })
           )}
-        </div>
-
-        {/* Footer info */}
-        <div className="p-3 border-t border-border/60 bg-muted/30 text-center text-xs text-muted-foreground shrink-0">
-          <span>
-            {lang === "gu"
-              ? `કુલ ${filteredCities.length} શહેરો ઉપલબ્ધ છે`
-              : `Showing ${filteredCities.length} cities`}
-          </span>
         </div>
       </DialogContent>
     </Dialog>

@@ -4,9 +4,10 @@ import { useLang } from "@/hooks/use-lang";
 import { CITIES, findNearestCity, type CityDef } from "@/lib/events";
 import { getSystemTimezone, getCityNameFromTimezone } from "@/lib/time-utils";
 import { Button } from "@/components/ui/button";
-import { MapPin, Loader2 } from "lucide-react";
+import { MapPin, Loader2, Navigation, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { CitySelectModal } from "@/components/city-select-modal";
 
 interface Props {
   value: CityDef | null;
@@ -19,6 +20,7 @@ const DEFAULT_CITY: CityDef = CITIES[0]; // Ahmedabad
 
 export function LocationSearch({ value, onChange, onGpsError, className }: Props) {
   const { lang, t } = useLang();
+  const [cityModalOpen, setCityModalOpen] = useState(false);
   const [loadingGps, setLoadingGps] = useState(false);
 
   // Default to Ahmedabad if nothing selected
@@ -29,12 +31,8 @@ export function LocationSearch({ value, onChange, onGpsError, className }: Props
   const current = value || DEFAULT_CITY;
   const currentLabel = lang === "gu" ? current.name_gu : current.name_en;
 
-  // Detect system timezone mismatch
-  const systemTz = getSystemTimezone();
-  const targetTz = current.tz || "Asia/Kolkata";
-  const isTzMismatched = systemTz !== targetTz;
-
-  const handleQuickSync = () => {
+  const handleQuickSync = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       if (onGpsError) onGpsError();
       return;
@@ -86,7 +84,7 @@ export function LocationSearch({ value, onChange, onGpsError, className }: Props
               });
             }
           } catch {
-            // Keep initial fallback
+            // Keep fallback
           }
         }
       },
@@ -99,26 +97,46 @@ export function LocationSearch({ value, onChange, onGpsError, className }: Props
   };
 
   return (
-    <Button
-      variant="outline"
-      size="icon"
-      onClick={handleQuickSync}
-      disabled={loadingGps}
-      aria-label={lang === "gu" ? `જીપીએસ સ્થાન: ${currentLabel}` : `GPS Location: ${currentLabel}`}
-      title={lang === "gu" ? `સ્થાન: ${currentLabel}` : `Location: ${currentLabel}`}
-      className={cn(
-        "relative rounded-full border-primary/20 bg-background/80 backdrop-blur hover:bg-accent/40 h-9 w-9 p-0 transition-all shrink-0",
-        className
-      )}
-    >
-      {loadingGps ? (
-        <Loader2 className="h-4 w-4 text-primary animate-spin" />
-      ) : (
-        <MapPin className="h-4 w-4 text-primary" />
-      )}
-      {isTzMismatched && (
-        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-amber-500 ring-1 ring-background" title={t("tzMismatch", lang)} />
-      )}
-    </Button>
+    <>
+      <div className="flex items-center gap-1">
+        {/* City Capsule Button — Opens City Selector Modal */}
+        <button
+          onClick={() => setCityModalOpen(true)}
+          className={cn(
+            "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full border border-primary/30 bg-card/85 dark:bg-card/70 backdrop-blur-xl hover:border-primary text-foreground text-xs font-extrabold cursor-pointer transition-all shadow-2xs max-w-[130px] sm:max-w-[160px] truncate",
+            className
+          )}
+          title={lang === "gu" ? `શહેર પસંદ કરો: ${currentLabel}` : `Select City: ${currentLabel}`}
+        >
+          <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span className="truncate">{currentLabel}</span>
+          <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0 opacity-70" />
+        </button>
+
+        {/* Quick GPS Locate Button */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleQuickSync}
+          disabled={loadingGps}
+          aria-label={lang === "gu" ? "જીપીએસ સ્થાન શોધો" : "Sync GPS Location"}
+          title={lang === "gu" ? "જીપીએસ સ્થાન શોધો" : "Sync GPS Location"}
+          className="rounded-full border-primary/25 bg-card/80 backdrop-blur hover:bg-primary/20 h-8 w-8 text-primary cursor-pointer transition-all shrink-0"
+        >
+          {loadingGps ? (
+            <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+          ) : (
+            <Navigation className="h-3.5 w-3.5 text-primary" />
+          )}
+        </Button>
+      </div>
+
+      <CitySelectModal
+        open={cityModalOpen}
+        onOpenChange={setCityModalOpen}
+        selectedCity={current}
+        onCitySelect={onChange}
+      />
+    </>
   );
 }

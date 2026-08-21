@@ -2,18 +2,11 @@
 
 import { LanguageProvider, useLang } from "@/hooks/use-lang";
 import { SettingsButton } from "@/components/settings-button";
-import { LocationSearch } from "@/components/location-search";
-import { EventPicker } from "@/components/wizard/event-picker";
-import { MethodPicker } from "@/components/wizard/method-picker";
-import { DateRangePicker } from "@/components/wizard/date-picker";
-import {
-  ResultsView,
-  type TimingResult,
-  type Suggestion,
-} from "@/components/wizard/results-view";
-import { PanchangToday } from "@/components/wizard/panchang-today";
+import { LiveCosmicHub } from "@/components/hub/live-cosmic-hub";
+import { PanchangTimelineDrawer } from "@/components/hub/panchang-timeline-drawer";
+import { OccasionStudio } from "@/components/hub/occasion-studio";
+import { OccasionDetailView } from "@/components/hub/occasion-detail-view";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -24,35 +17,21 @@ import {
 } from "@/components/ui/dialog";
 import {
   EVENTS,
-  METHODS,
   CITIES,
   findNearestCity,
-  resolveAutoMethods,
   type EventId,
-  type MethodId,
   type CityDef,
-  type TimeWindow,
 } from "@/lib/events";
 import { getSystemTimezone, getCityNameFromTimezone } from "@/lib/time-utils";
-import { computeTimingsClient } from "@/lib/client-api";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  ArrowLeft,
-  ArrowRight,
   Sparkles,
-  CalendarClock,
-  ListChecks,
-  Moon,
-  MapPin,
   Home,
 } from "lucide-react";
 import Image from "next/image";
 import { formatHeaderDateTime } from "@/lib/i18n";
 
 const IST_OFFSET = 5.5; // Gujarat is IST = UTC+5:30
-
-type Step = "event" | "method" | "dates" | "results";
-const STEP_ORDER: Step[] = ["event", "method", "dates", "results"];
 
 function LiveHeaderDateTime({
   lang,
@@ -63,27 +42,52 @@ function LiveHeaderDateTime({
   tzOffsetHours: number;
   tz?: string;
 }) {
+  const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState<Date>(() => new Date());
 
   useEffect(() => {
+    setMounted(true);
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  const hour = now.getHours();
+  let greetingEn = "Good Morning";
+  let greetingGu = "શુભ સવાર";
+  if (hour >= 12 && hour < 16) {
+    greetingEn = "Good Afternoon";
+    greetingGu = "શુભ બપોર";
+  } else if (hour >= 16 && hour < 20) {
+    greetingEn = "Good Evening";
+    greetingGu = "શુભ સંધ્યા";
+  } else if (hour >= 20 || hour < 5) {
+    greetingEn = "Good Night";
+    greetingGu = "શુભ રાત્રિ";
+  }
+
   return (
-    <p className="text-[11px] sm:text-xs font-semibold text-primary/95 truncate whitespace-nowrap pt-0.5">
-      {formatHeaderDateTime(now, lang, tzOffsetHours, tz)}
-    </p>
+    <div className="flex flex-col min-w-0" suppressHydrationWarning>
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span className="text-[11px] sm:text-xs font-bold text-primary truncate" suppressHydrationWarning>
+          {lang === "gu" ? greetingGu : greetingEn}
+        </span>
+        <span className="text-muted-foreground/50 text-[10px] hidden xs:inline">•</span>
+        <p className="text-[10px] sm:text-[11px] font-medium text-muted-foreground truncate whitespace-nowrap hidden xs:inline" suppressHydrationWarning>
+          {mounted ? formatHeaderDateTime(now, lang, tzOffsetHours, tz) : "..."}
+        </p>
+      </div>
+      <p className="text-[10px] font-medium text-muted-foreground truncate xs:hidden" suppressHydrationWarning>
+        {mounted ? formatHeaderDateTime(now, lang, tzOffsetHours, tz) : "..."}
+      </p>
+    </div>
   );
 }
 
 function ShubhSamayApp() {
   const { lang, t } = useLang();
-  const [step, setStep] = useState<Step>("event");
-  const [eventId, setEventId] = useState<EventId | null>(null);
-  const [methods, setMethods] = useState<MethodId[]>([]);
-  const [dates, setDates] = useState<Date[]>([]);
-  const [timeWindow, setTimeWindow] = useState<TimeWindow | null>(null);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [activeEventId, setActiveEventId] = useState<EventId | null>(null);
+
   const [city, setCity] = useState<CityDef | null>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("shubh_samay_location");
@@ -91,62 +95,67 @@ function ShubhSamayApp() {
         try {
           return JSON.parse(saved);
         } catch {
-          // Fall through if invalid JSON
+          // Fall through
         }
       }
     }
-    return null;
+    return {
+      lat: 23.0225,
+      lng: 72.5714,
+      name_en: "Ahmedabad",
+      name_gu: "અમદાવાદ",
+      tz: "Asia/Kolkata",
+    };
   });
-  const [showDefaultLocationDialog, setShowDefaultLocationDialog] = useState(false);
+
   const [showExitDialog, setShowExitDialog] = useState(false);
 
-  const [highlySlots, setHighlySlots] = useState<TimingResult[]>([]);
-  const [auspiciousSlots, setAuspiciousSlots] = useState<TimingResult[]>([]);
-  const [goodSlots, setGoodSlots] = useState<TimingResult[]>([]);
-  const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
-  const [bestRecommendationSlot, setBestRecommendationSlot] = useState<TimingResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // === Android Hardware Back Button & Gesture Navigation ===
+  // Sync active event with URL hash (#marriage, #vehicle-purchase, etc.)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Baseline history entry
-    if (!window.history.state || !window.history.state.step) {
-      window.history.replaceState({ step: "event" }, "");
-    }
-
-    const handlePopState = (e: PopStateEvent) => {
-      // If user was on a sub-step (method, dates, results) and taps Android hardware back button:
-      // Redirect straight back to Home (event)
-      if (step !== "event") {
-        setStep("event");
-        window.history.replaceState({ step: "event" }, "");
-      } else {
-        // If user is on Home (event step) and taps Android hardware back button:
-        // Prevent browser exit and prompt confirmation dialog
-        window.history.pushState({ step: "event" }, "");
-        setShowExitDialog(true);
+    const checkHash = () => {
+      const hash = window.location.hash.replace("#", "");
+      if (hash && EVENTS.some((e) => e.id === hash)) {
+        setActiveEventId(hash as EventId);
+      } else if (!hash) {
+        setActiveEventId(null);
       }
     };
 
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [step]);
+    checkHash();
+    window.addEventListener("hashchange", checkHash);
+    window.addEventListener("popstate", checkHash);
+    return () => {
+      window.removeEventListener("hashchange", checkHash);
+      window.removeEventListener("popstate", checkHash);
+    };
+  }, []);
 
-  const changeStep = (newStep: Step) => {
-    if (typeof window !== "undefined" && newStep !== "event") {
-      window.history.pushState({ step: newStep }, "");
+  const handleSelectEvent = useCallback((id: EventId) => {
+    setActiveEventId(id);
+    if (typeof window !== "undefined") {
+      window.location.hash = id;
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
-    setStep(newStep);
-  };
+  }, []);
 
-  // Initial location load & first-launch GPS permission handling
+  const handleBackToHome = useCallback(() => {
+    setActiveEventId(null);
+    if (typeof window !== "undefined") {
+      if (window.location.hash) {
+        window.history.pushState(null, "", window.location.pathname);
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, []);
+
+  // First launch location initialization
   useEffect(() => {
-    if (typeof window === "undefined" || city) return;
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem("shubh_samay_location");
+    if (saved) return;
 
-    // No saved location -> First-time app open: request GPS permission
     if (typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
@@ -171,21 +180,12 @@ function ShubhSamayApp() {
           }
         },
         () => {
-          // Permission declined or error -> Fallback to Ahmedabad + show notice dialog
           const ahmedabad = CITIES[0];
           setCity(ahmedabad);
           localStorage.setItem("shubh_samay_location", JSON.stringify(ahmedabad));
-          setShowDefaultLocationDialog(true);
         },
         { timeout: 10000, enableHighAccuracy: true }
       );
-    } else {
-      queueMicrotask(() => {
-        const ahmedabad = CITIES[0];
-        setCity(ahmedabad);
-        localStorage.setItem("shubh_samay_location", JSON.stringify(ahmedabad));
-        setShowDefaultLocationDialog(true);
-      });
     }
   }, []);
 
@@ -196,413 +196,94 @@ function ShubhSamayApp() {
     }
   };
 
-  const stepIdx = STEP_ORDER.indexOf(step);
-  const eventDef = EVENTS.find((e) => e.id === eventId);
-
-  // === EVENT PICKER — auto-advance on click ===
-  // For "Others" event: skip method step, default to "All", go straight to dates
-  const handleEventSelect = (id: EventId) => {
-    setEventId(id);
-    if (id === "others") {
-      // Skip method selection, default to "all"
-      setMethods(["all"]);
-      changeStep("dates");
-    } else {
-      // Pre-fill methods with "auto" so user can just hit Next
-      setMethods(["auto"]);
-      changeStep("method");
-    }
-  };
-
-  const canProceed = (): boolean => {
-    switch (step) {
-      case "method": return methods.length > 0;
-      case "dates": return dates.length > 0;
-      default: return true;
-    }
-  };
-
-  const next = async () => {
-    if (step === "dates") {
-      await fetchResults();
-      changeStep("results");
-      return;
-    }
-    const nextIdx = stepIdx + 1;
-    if (nextIdx < STEP_ORDER.length) changeStep(STEP_ORDER[nextIdx]);
-  };
-
-  const back = () => {
-    if (stepIdx > 0) changeStep(STEP_ORDER[stepIdx - 1]);
-  };
-
-  const reset = () => {
-    changeStep("event");
-    setEventId(null);
-    setMethods([]);
-    setDates([]);
-    setTimeWindow(null);
-    setHighlySlots([]);
-    setAuspiciousSlots([]);
-    setGoodSlots([]);
-    setSuggestion(null);
-    setBestRecommendationSlot(null);
-    setError(null);
-  };
-
-  const addSuggestedDate = (d: Date) => {
-    const normalized = new Date(d);
-    normalized.setHours(12, 0, 0, 0);
-    const exists = dates.some(
-      (x) => x.toDateString() === normalized.toDateString()
-    );
-    if (!exists) {
-      const newDates = [...dates, normalized].sort(
-        (a, b) => a.getTime() - b.getTime()
-      );
-      setDates(newDates);
-      // Re-fetch with the new date included
-      setTimeout(() => {
-        fetchResultsWith(newDates, methods, timeWindow);
-      }, 100);
-    }
-  };
-
-  const fetchResults = async () => {
-    await fetchResultsWith(dates, methods, timeWindow);
-  };
-
-  const fetchResultsWith = async (
-    ds: Date[],
-    ms: MethodId[],
-    tw: TimeWindow | null
-  ) => {
-    setLoading(true);
-    setError(null);
-    try {
-      let data: any = null;
-      try {
-        const res = await fetch("/api/timings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event: eventId,
-            methods: ms,
-            dates: ds.map((d) => d.toISOString()),
-            city,
-            tzOffsetHours: IST_OFFSET,
-            lang,
-            timeWindow: tw ?? undefined,
-          }),
-        });
-        if (res.ok) {
-          data = await res.json();
-        }
-      } catch {
-        // Fallback to client-side calculation when static/offline
-      }
-
-      if (!data || !data.ok) {
-        if (!eventId || !city) throw new Error("Missing required event or location selection");
-        data = computeTimingsClient({
-          event: eventId,
-          methods: ms,
-          dates: ds.map((d) => d.toISOString()),
-          city,
-          tzOffsetHours: IST_OFFSET,
-          lang,
-          timeWindow: tw ?? undefined,
-        });
-      }
-
-      if (!data.ok) throw new Error(data.error || "Failed to calculate timings");
-      setHighlySlots(data.highly || []);
-      setAuspiciousSlots(data.auspicious || []);
-      setGoodSlots(data.good || []);
-      setSuggestion(data.suggestion || null);
-      setBestRecommendationSlot(data.bestRecommendation || null);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const stepMeta: Record<
-    Step,
-    { icon: React.ReactNode; title: string; desc: string }
-  > = {
-    event: {
-      icon: <Sparkles className="h-5 w-5" />,
-      title: t("stepEvent"),
-      desc: t("stepEventDesc"),
-    },
-    method: {
-      icon: <ListChecks className="h-5 w-5" />,
-      title: t("stepMethod"),
-      desc: t("stepMethodDesc"),
-    },
-    dates: {
-      icon: <CalendarClock className="h-5 w-5" />,
-      title: t("stepDates"),
-      desc: t("stepDatesDesc"),
-    },
-    results: {
-      icon: <Moon className="h-5 w-5" />,
-      title: t("stepResults"),
-      desc: t("stepResultsDesc"),
-    },
-  };
-
-  // Show resolved methods for chips
-  const resolvedMethodLabels: string[] = [];
-  for (const m of methods) {
-    if (m === "auto") {
-      const auto = eventId ? resolveAutoMethods(eventId) : [];
-      for (const am of auto) {
-        const def = METHODS.find((x) => x.id === am);
-        if (def)
-          resolvedMethodLabels.push(lang === "gu" ? def.name_gu : def.name_en);
-      }
-    } else if (m === "all") {
-      // "All" expands to all 6 concrete methods
-      const allMethods = ["choghadiya", "hora", "tithi", "nakshatra", "yoga", "muhurat"] as const;
-      for (const am of allMethods) {
-        const def = METHODS.find((x) => x.id === am);
-        if (def)
-          resolvedMethodLabels.push(lang === "gu" ? def.name_gu : def.name_en);
-      }
-    } else {
-      const def = METHODS.find((x) => x.id === m);
-      if (def)
-        resolvedMethodLabels.push(lang === "gu" ? def.name_gu : def.name_en);
-    }
-  }
-
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-border/60 shadow-2xs">
-        <div className="max-w-2xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-2">
-          <div className="flex items-center gap-2 sm:gap-2.5 leading-tight min-w-0 flex-1">
-            <Image
-              src="/logo.png"
-              alt="Shubh Samay Logo"
-              width={36}
-              height={36}
-              className="rounded-lg shrink-0 border border-primary/20 shadow-2xs w-8 h-8 sm:w-9 sm:h-9"
-            />
+    <div className="min-h-screen flex flex-col relative selection:bg-primary/25 bg-background text-foreground">
+      {/* Ambient background celestial gradient glow spots */}
+      <div className="fixed top-0 left-1/4 w-96 h-96 rounded-full bg-primary/15 blur-3xl pointer-events-none -z-10" />
+      <div className="fixed bottom-0 right-1/4 w-96 h-96 rounded-full bg-accent/15 blur-3xl pointer-events-none -z-10" />
+
+      {/* Sticky Frosted Header */}
+      <header className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-primary/20 dark:border-primary/15 shadow-xs transition-all">
+        <div className="max-w-2xl mx-auto px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={handleBackToHome}
+            className="flex items-center gap-2.5 leading-tight min-w-0 flex-1 cursor-pointer text-left focus:outline-none"
+          >
+            <div className="relative">
+              <Image
+                src="/logo.png"
+                alt="Shubh Samay Logo"
+                width={38}
+                height={38}
+                className="rounded-2xl shrink-0 border border-primary/40 shadow-xs w-8 h-8 sm:w-9 sm:h-9"
+              />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-background animate-pulse" />
+            </div>
             <div className="min-w-0 flex-1">
-              <h1 className="font-bold text-sm xs:text-base sm:text-lg text-foreground truncate whitespace-nowrap">
-                {lang === "gu" ? "આજનું પંચાંગ" : "Today's Panchang"}
+              <h1 className="font-extrabold text-sm xs:text-base sm:text-lg text-foreground truncate whitespace-nowrap tracking-tight">
+                {lang === "gu" ? "શુભ સમય" : "Shubh Samay"}
               </h1>
               <LiveHeaderDateTime lang={lang} tzOffsetHours={IST_OFFSET} tz={city?.tz} />
             </div>
-          </div>
+          </button>
+
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <LocationSearch
-              value={city}
-              onChange={handleCityChange}
-              onGpsError={() => setShowDefaultLocationDialog(true)}
-            />
             <SettingsButton city={city} onCityChange={handleCityChange} />
           </div>
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-6 space-y-5">
-        {/* Today's panchang widget — only on home (event step) */}
-        {step === "event" && (
-          <PanchangToday city={city} tzOffsetHours={IST_OFFSET} onCityChange={handleCityChange} />
-        )}
-
-        {/* Progress indicator */}
-        {step !== "results" && (
-          <div className="flex items-center justify-center gap-1.5">
-            {STEP_ORDER.slice(0, 3).map((s, i) => (
-              <div
-                key={s}
-                className={
-                  "h-1.5 rounded-full transition-all " +
-                  (i <= stepIdx ? "bg-primary w-8" : "bg-muted w-5")
-                }
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-2xl w-full mx-auto px-3.5 sm:px-4 py-4 sm:py-6 space-y-6">
+        {activeEventId ? (
+          /* Dedicated Occasion Muhurat Page */
+          <OccasionDetailView
+            eventId={activeEventId}
+            city={city}
+            tzOffsetHours={IST_OFFSET}
+            onBack={handleBackToHome}
+          />
+        ) : (
+          /* Main Dashboard: Live Panchang + Occasion Finder */
+          <>
+            {/* SECTION 1: LIVE PANCHANG ASTROLABE & 5-PILLAR MATRIX */}
+            <section className="space-y-2">
+              <LiveCosmicHub
+                city={city}
+                tzOffsetHours={IST_OFFSET}
+                onOpenTimeline={() => setTimelineOpen(true)}
               />
-            ))}
-          </div>
-        )}
+            </section>
 
-        {/* Step card */}
-        <Card className="p-4 sm:p-6 shadow-md border-border/80 bg-card/95 backdrop-blur space-y-4">
-          {/* Step header */}
-          <div className="flex items-center justify-between border-b border-border/60 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                {stepMeta[step].icon}
-              </div>
-              <div>
-                <h2 className="font-bold text-base sm:text-lg text-foreground">
-                  {stepMeta[step].title}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  {stepMeta[step].desc}
+            {/* SECTION 2: OCCASION & AUSPICIOUS DATE FINDER */}
+            <section className="space-y-3 pt-2">
+              <div className="flex items-center justify-between px-1 border-t border-border/50 pt-4">
+                <p className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  <span>{lang === "gu" ? "શુભ મુહૂર્ત શોધો (પ્રસંગ પસંદ કરો)" : "Find Auspicious Muhurat (Select Event)"}</span>
                 </p>
               </div>
-            </div>
-            {step !== "event" && step !== "results" && (
-              <span className="text-xs font-semibold text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                {t("step")} {stepIdx + 1} / 3
-              </span>
-            )}
-          </div>
 
-          {/* Step body */}
-          {step === "event" && (
-            <EventPicker
-              value={eventId}
-              onChange={handleEventSelect}
-              onSelect={handleEventSelect}
-            />
-          )}
-
-          {step === "method" && (
-            <MethodPicker
-              value={methods}
-              selected={methods}
-              onChange={setMethods}
-              eventId={eventId}
-            />
-          )}
-
-          {step === "dates" && (
-            <DateRangePicker
-              dates={dates}
-              selectedDates={dates}
-              onChange={setDates}
-              onDatesChange={setDates}
-              timeWindow={timeWindow}
-              onTimeWindowChange={setTimeWindow}
-            />
-          )}
-
-          {step === "results" && (
-            <ResultsView
-              highly={highlySlots}
-              auspicious={auspiciousSlots}
-              good={goodSlots}
-              bestRecommendation={bestRecommendationSlot}
-              loading={loading}
-              error={error}
-              eventName={
-                eventDef
-                  ? `${eventDef.emoji} ${
-                      lang === "gu" ? eventDef.name_gu : eventDef.name_en
-                    }`
-                  : undefined
-              }
-              onReset={reset}
-              onChangeDateAndTime={() => changeStep("dates")}
-            />
-          )}
-        </Card>
-
-        {/* Selection summary chips */}
-        {step !== "results" && step !== "event" && (
-          <div className="flex flex-wrap gap-2 text-xs">
-            {eventDef && (
-              <Chip
-                label={lang === "gu" ? eventDef.name_gu : eventDef.name_en}
-                emoji={eventDef.emoji}
-              />
-            )}
-            {resolvedMethodLabels.length > 0 && (
-              <Chip
-                label={`${resolvedMethodLabels.length} ${
-                  lang === "gu" ? "પદ્ધતિ" : "methods"
-                }: ${resolvedMethodLabels.join(", ")}`}
-              />
-            )}
-            {dates.length > 0 && (
-              <Chip
-                label={`${dates.length} ${
-                  lang === "gu" ? "તારીખ" : dates.length > 1 ? "dates" : "date"
-                }`}
-              />
-            )}
-            {timeWindow && (
-              <Chip
-                label={`${formatTimeWindow(timeWindow, lang)}`}
-                icon={<CalendarClock className="h-3 w-3" />}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Navigation buttons — hidden on event step (auto-advances) */}
-        {step !== "results" && step !== "event" && (
-          <div className="flex items-center gap-2 pt-1">
-            <Button
-              onClick={reset}
-              variant="ghost"
-              size="icon"
-              aria-label={t("home")}
-              className="shrink-0 text-muted-foreground hover:text-foreground"
-            >
-              <Home className="h-4 w-4" />
-            </Button>
-            <Button onClick={back} variant="outline" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              {t("back")}
-            </Button>
-            <Button
-              onClick={next}
-              disabled={!canProceed() || loading}
-              className="flex-1 min-w-0 gap-1.5 sm:gap-2 bg-primary hover:bg-primary/90 text-xs sm:text-sm font-semibold px-2.5 sm:px-4 py-2 sm:py-2.5 h-9 sm:h-10 shadow-sm"
-            >
-              {step === "dates" ? (
-                <>
-                  <Moon className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{t("findTimings")}</span>
-                </>
-              ) : (
-                <>
-                  <span>{t("next")}</span>
-                  <ArrowRight className="h-4 w-4 shrink-0" />
-                </>
-              )}
-            </Button>
-          </div>
+              <OccasionStudio onSelectEvent={handleSelectEvent} />
+            </section>
+          </>
         )}
       </main>
 
-      {/* First-launch Default Location Notification Modal */}
-      <Dialog open={showDefaultLocationDialog} onOpenChange={setShowDefaultLocationDialog}>
-        <DialogContent className="max-w-md p-6 border-primary/20">
-          <DialogHeader className="space-y-2">
-            <DialogTitle className="flex items-center gap-2 text-foreground text-base">
-              <MapPin className="h-5 w-5 text-primary shrink-0" />
-              {t("defaultLocationNoticeTitle")}
-            </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground pt-1 leading-relaxed">
-              {t("defaultLocationNoticeBody")}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="pt-4">
-            <Button
-              onClick={() => setShowDefaultLocationDialog(false)}
-              className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {t("gotIt")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* 24-Hour Day/Night Panchang Timeline Modal Drawer */}
+      <PanchangTimelineDrawer
+        open={timelineOpen}
+        onOpenChange={setTimelineOpen}
+        city={city}
+        tzOffsetHours={IST_OFFSET}
+      />
 
       {/* Android Hardware Back Exit Confirmation Modal */}
       <Dialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <DialogContent className="max-w-xs sm:max-w-sm p-5 border-primary/25 rounded-2xl">
+        <DialogContent className="max-w-xs sm:max-w-sm p-5 border-primary/30 rounded-3xl bg-card/95 backdrop-blur-2xl">
           <DialogHeader className="space-y-2 text-center sm:text-left">
-            <DialogTitle className="flex items-center justify-center sm:justify-start gap-2 text-foreground text-base">
+            <DialogTitle className="flex items-center justify-center sm:justify-start gap-2 text-foreground text-base font-bold">
               <Home className="h-5 w-5 text-primary shrink-0" />
               {lang === "gu" ? "એપમાંથી બહાર નીકળો" : "Exit App"}
             </DialogTitle>
@@ -617,7 +298,7 @@ function ShubhSamayApp() {
               variant="outline"
               size="sm"
               onClick={() => setShowExitDialog(false)}
-              className="flex-1 sm:flex-initial text-xs h-9"
+              className="flex-1 sm:flex-initial text-xs h-9 rounded-xl border-border/60 cursor-pointer"
             >
               {lang === "gu" ? "રદ કરો" : "Cancel"}
             </Button>
@@ -630,7 +311,7 @@ function ShubhSamayApp() {
                   window.history.go(-2);
                 }
               }}
-              className="flex-1 sm:flex-initial text-xs h-9"
+              className="flex-1 sm:flex-initial text-xs h-9 rounded-xl font-bold cursor-pointer"
             >
               {lang === "gu" ? "બહાર નીકળો" : "Exit"}
             </Button>
@@ -638,39 +319,6 @@ function ShubhSamayApp() {
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function formatTimeWindow(
-  tw: TimeWindow,
-  lang: "en" | "gu"
-): string {
-  const fmt = (dec: number) => {
-    const h = Math.floor(dec);
-    const m = Math.round((dec - h) * 60);
-    const period = h < 12 ? "AM" : "PM";
-    const dh = h === 0 ? 12 : h > 12 ? h - 12 : h;
-    return `${dh}:${String(m).padStart(2, "0")} ${period}`;
-  };
-  const label = lang === "gu" ? "સમય" : "Time";
-  return `${label}: ${fmt(tw.startHour)}–${fmt(tw.endHour)}`;
-}
-
-function Chip({
-  label,
-  emoji,
-  icon,
-}: {
-  label: string;
-  emoji?: string;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary/60 text-secondary-foreground text-xs font-medium">
-      {emoji && <span>{emoji}</span>}
-      {icon}
-      {label}
-    </span>
   );
 }
 

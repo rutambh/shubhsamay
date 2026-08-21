@@ -4,7 +4,7 @@ import { useLang } from "@/hooks/use-lang";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Calendar,
   Clock,
@@ -12,9 +12,11 @@ import {
   Sparkles,
   RotateCcw,
   AlertCircle,
-  CheckCircle2,
   CalendarClock,
   Home,
+  CheckCircle2,
+  Share2,
+  CalendarPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Tier, SlotClassification, MethodId } from "@/lib/events";
@@ -74,28 +76,27 @@ export function ResultsView({
   const [overrideTier, setOverrideTier] = useState<Tier | null>(null);
 
   const selectedTier = overrideTier ?? defaultTier;
-  const setSelectedTier = setOverrideTier;
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-4">
+      <div className="flex flex-col items-center justify-center py-12 gap-3">
         <div className="relative">
-          <div className="h-16 w-16 rounded-full border-4 border-accent border-t-primary animate-spin" />
-          <Sparkles className="absolute inset-0 m-auto h-6 w-6 text-primary" />
+          <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
+          <Sparkles className="absolute inset-0 m-auto h-5 w-5 text-primary animate-pulse" />
         </div>
-        <p className="text-muted-foreground font-medium">{t("loading")}</p>
+        <p className="text-foreground font-bold text-xs">{t("loading")}</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="p-6 border-destructive/40 bg-destructive/5">
+      <Card className="p-5 border-destructive/40 bg-destructive/10 rounded-3xl space-y-2">
         <div className="flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-destructive">Error</p>
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <p className="font-bold text-destructive text-sm">Error</p>
+            <p className="text-xs text-muted-foreground">{error}</p>
           </div>
         </div>
       </Card>
@@ -104,16 +105,17 @@ export function ResultsView({
 
   const total = highly.length + auspicious.length + good.length;
 
-  // CASE 2: No good timings available -> Show button in middle of result grid with message
   if (total === 0) {
     return (
       <div className="space-y-4">
-        <Card className="p-6 text-center border-dashed bg-card/80 space-y-4">
-          <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto" />
+        <Card className="p-6 text-center border-dashed border-primary/30 bg-card/85 backdrop-blur-xl rounded-3xl space-y-4 shadow-md">
+          <div className="w-12 h-12 rounded-2xl bg-secondary/40 border border-primary/20 flex items-center justify-center mx-auto text-primary">
+            <AlertCircle className="h-6 w-6" />
+          </div>
           <div className="space-y-1">
-            <p className="text-foreground font-bold text-base">
+            <p className="text-foreground font-extrabold text-base">
               {lang === "gu"
-                ? "આ તારીખોમાં કોઈ શુભ સમય મળ્યો નથી."
+                ? "આ તારીખોમાં કોઈ અનુકૂળ શુભ સમય મળ્યો નથી."
                 : "No auspicious slots found on these dates."}
             </p>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
@@ -123,10 +125,10 @@ export function ResultsView({
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
             <Button
               onClick={onChangeDateAndTime || onReset}
-              className="w-full sm:w-auto gap-2 font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+              className="w-full sm:w-auto gap-2 font-bold bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-sm cursor-pointer"
             >
               <CalendarClock className="h-4 w-4" />
               {lang === "gu" ? "તારીખ અને સમય બદલો" : "Change date and time"}
@@ -134,7 +136,7 @@ export function ResultsView({
             <Button
               onClick={onReset}
               variant="outline"
-              className="w-full sm:w-auto gap-2"
+              className="w-full sm:w-auto gap-2 rounded-2xl cursor-pointer"
             >
               <RotateCcw className="h-4 w-4" />
               {t("startOver")}
@@ -145,73 +147,67 @@ export function ResultsView({
     );
   }
 
-  // Get slots for the selected tier
   const displaySlots =
     selectedTier === "highly" ? highly :
     selectedTier === "auspicious" ? auspicious :
     selectedTier === "good" ? good : [];
 
-  // Single #1 best overall timing slot calculated across ALL methods (strictly highly or auspicious)
   const topSlot = bestRecommendation;
 
   return (
-    <div className="space-y-3.5">
-      <div className="flex items-center justify-between gap-2 pb-0.5">
-        {eventName ? (
-          <p className="text-xs text-muted-foreground">
+    <div className="space-y-4 fade-up">
+      {/* Event Top Bar */}
+      <div className="flex items-center justify-between gap-2">
+        {eventName && (
+          <p className="text-xs text-muted-foreground font-semibold">
             {lang === "gu" ? "પ્રસંગ: " : "Event: "}
-            <span className="font-semibold text-foreground">{eventName}</span>
+            <span className="font-extrabold text-foreground">{eventName}</span>
           </p>
-        ) : (
-          <div />
         )}
         <Button
           variant="ghost"
           size="sm"
           onClick={onReset}
-          className="h-7 px-2 gap-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/40 rounded-full"
-          title={t("startOver")}
+          className="h-7 px-2.5 gap-1.5 text-xs text-muted-foreground hover:text-foreground rounded-full"
         >
           <Home className="h-3.5 w-3.5" />
           <span>{lang === "gu" ? "મુખ્ય પૃષ્ઠ" : "Home"}</span>
         </Button>
       </div>
 
-      {/* Compact Best Recommended Timing Card */}
+      {/* 🌟 1. BEST RECOMMENDED TIMING CARD (Hero Crown) */}
       {topSlot && (
-        <Card className="p-2.5 sm:p-3 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-primary/5 to-card shadow-2xs space-y-2">
-          <div className="flex items-center justify-between gap-1.5">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse shrink-0" />
-              <h3 className="font-bold text-xs sm:text-sm text-foreground">
-                {lang === "gu" ? "ઉત્તમ સમય મુહૂર્ત (શ્રેષ્ઠ પસંદગી)" : "Best Recommended Timing"}
+        <Card className="p-4 sm:p-5 rounded-3xl border border-amber-500/40 bg-gradient-to-br from-amber-500/15 via-primary/10 to-card/95 backdrop-blur-2xl shadow-xl space-y-3 relative overflow-hidden">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-xl bg-amber-500/20 text-amber-500 shrink-0">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <h3 className="font-extrabold text-xs sm:text-sm text-foreground tracking-tight">
+                {lang === "gu" ? "સૌથી શ્રેષ્ઠ મુહૂર્ત (પ્રથમ પસંદગી)" : "Best Recommended Auspicious Window"}
               </h3>
             </div>
-            <Badge className="bg-amber-500 text-amber-950 text-[10px] py-0 px-2 font-bold gap-0.5 shrink-0">
-              <Star className="h-2.5 w-2.5 fill-current" />
-              {lang === "gu"
-                ? { highly: "અત્યંત શુભ", auspicious: "શુભ", good: "સારો", avoid: "ટાળો" }[topSlot.tier]
-                : { highly: "Highly Auspicious", auspicious: "Auspicious", good: "Good", avoid: "Avoid" }[topSlot.tier]}
+            <Badge className="bg-amber-500 text-amber-950 text-[10px] py-0.5 px-2.5 font-extrabold gap-1 shrink-0 rounded-full shadow-2xs">
+              <Star className="h-3 w-3 fill-current" />
+              {lang === "gu" ? "અતિ શ્રેષ્ઠ" : "Top Pick"}
             </Badge>
           </div>
 
-          <div className="p-3 rounded-lg bg-background/80 backdrop-blur border border-primary/20 space-y-1">
-            {/* Day, Date */}
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground">
+          <div className="p-3.5 rounded-2xl bg-background/80 dark:bg-background/60 backdrop-blur-md border border-amber-500/25 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
               <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
               <span>{formatTzDate(topSlot.start, TZ_OFFSET)}</span>
             </div>
-            {/* Time in new line */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-primary shrink-0" />
-              <span className="font-black text-base sm:text-lg text-foreground tracking-tight">
+              <span className="font-black text-lg sm:text-xl text-foreground tracking-tight">
                 {formatTzTime(topSlot.start, TZ_OFFSET)} – {formatTzTime(topSlot.end, TZ_OFFSET)}
               </span>
             </div>
           </div>
 
-          {/* Classification chips color-coded by tier (matching results grid) */}
-          <div className="flex flex-wrap gap-1 pt-0.5">
+          {/* Planetary Class Chips */}
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
             <ClassChip
               label={lang === "gu" ? "ચોઘડિયા" : "Choghadiya"}
               value={topSlot.classification.choghadiya ? (lang === "gu" ? topSlot.classification.choghadiya.name_gu : topSlot.classification.choghadiya.name_en) : null}
@@ -242,308 +238,145 @@ export function ResultsView({
               tier={topSlot.classification.yoga?.tier}
               lang={lang}
             />
-            <ClassChip
-              label={lang === "gu" ? "વાર" : "Vara"}
-              value={topSlot.classification.vara ? (lang === "gu" ? topSlot.classification.vara.name_gu : topSlot.classification.vara.name_en) : null}
-              tier={topSlot.classification.vara?.tier}
-              lang={lang}
-            />
-            <ClassChip
-              label={lang === "gu" ? "મુહૂર્ત" : "Muhurat"}
-              value={topSlot.classification.muhurat ? (lang === "gu" ? topSlot.classification.muhurat.name_gu : topSlot.classification.muhurat.name_en) : null}
-              tier={topSlot.classification.muhurat?.tier}
-              lang={lang}
-              inactive={topSlot.classification.muhurat ? !topSlot.classification.muhurat.active : undefined}
-            />
           </div>
 
-          {/* CASE 1: Results are visible -> Add Home and "Change date and time" button right under Best Recommended timing card */}
+          {/* Bottom Actions */}
           <div className="pt-1 flex items-center justify-end gap-2">
-            <Button
-              onClick={onReset}
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs font-semibold gap-1.5 border-border/80 text-muted-foreground hover:text-foreground hover:bg-accent/40 shadow-2xs"
-            >
-              <Home className="h-3.5 w-3.5" />
-              {lang === "gu" ? "હોમ" : "Home"}
-            </Button>
             <Button
               onClick={onChangeDateAndTime || onReset}
               variant="outline"
               size="sm"
-              className="h-8 text-xs font-bold gap-1.5 border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/10 shadow-2xs"
+              className="h-8 text-xs font-bold gap-1.5 rounded-xl border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/10 cursor-pointer shadow-2xs"
             >
               <CalendarClock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-              {lang === "gu" ? "તારીખ અને સમય બદલો" : "Change date and time"}
+              <span>{lang === "gu" ? "તારીખ અને સમય બદલો" : "Change date & time"}</span>
             </Button>
           </div>
         </Card>
       )}
 
-      {/* If no topSlot but total > 0, show button at top of results grid */}
-      {!topSlot && total > 0 && (
-        <div className="flex items-center justify-end gap-2 pb-1">
-          <Button
-            onClick={onReset}
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs font-semibold gap-1.5 border-border/80 text-muted-foreground hover:text-foreground hover:bg-accent/40 shadow-2xs"
-          >
-            <Home className="h-3.5 w-3.5" />
-            {lang === "gu" ? "હોમ" : "Home"}
-          </Button>
-          <Button
-            onClick={onChangeDateAndTime || onReset}
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs font-bold gap-1.5 border-primary/30 text-primary hover:bg-primary/5 shadow-2xs"
-          >
-            <CalendarClock className="h-3.5 w-3.5 text-primary" />
-            {lang === "gu" ? "તારીખ અને સમય બદલો" : "Change date and time"}
-          </Button>
+      {/* 2. Tier Selection Filter Tabs */}
+      <div className="space-y-2">
+        <p className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground px-1">
+          {lang === "gu" ? "બધા મળેલા શુભ સમય" : "All Auspicious Windows"}
+        </p>
+
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { id: "highly", label_en: `Highly (${highly.length})`, label_gu: `અત્યંત શુભ (${highly.length})`, count: highly.length },
+            { id: "auspicious", label_en: `Auspicious (${auspicious.length})`, label_gu: `શુભ (${auspicious.length})`, count: auspicious.length },
+            { id: "good", label_en: `Good (${good.length})`, label_gu: `સારો (${good.length})`, count: good.length },
+          ].map((t) => {
+            const active = selectedTier === t.id;
+            return (
+              <button
+                key={t.id}
+                disabled={t.count === 0}
+                onClick={() => setOverrideTier(t.id as Tier)}
+                className={cn(
+                  "py-2.5 px-2 rounded-2xl text-xs font-bold border transition-all text-center cursor-pointer truncate",
+                  active
+                    ? "bg-primary text-primary-foreground border-primary shadow-xs scale-[1.02]"
+                    : t.count === 0
+                    ? "opacity-40 cursor-not-allowed bg-secondary/10 border-border/30 text-muted-foreground"
+                    : "bg-secondary/35 border-border/50 text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {lang === "gu" ? t.label_gu : t.label_en}
+              </button>
+            );
+          })}
         </div>
-      )}
-
-      {/* Tiles — radio-style (one selected at a time) */}
-      <div className="grid grid-cols-3 gap-2">
-        <Tile
-          tier="highly"
-          count={highly.length}
-          lang={lang}
-          selected={selectedTier === "highly"}
-          onClick={() => setSelectedTier("highly")}
-        />
-        <Tile
-          tier="auspicious"
-          count={auspicious.length}
-          lang={lang}
-          selected={selectedTier === "auspicious"}
-          onClick={() => setSelectedTier("auspicious")}
-        />
-        <Tile
-          tier="good"
-          count={good.length}
-          lang={lang}
-          selected={selectedTier === "good"}
-          onClick={() => setSelectedTier("good")}
-        />
       </div>
 
-      {/* Selected tier's slots */}
-      {selectedTier && displaySlots.length > 0 && (
-        <ResultGroup slots={displaySlots} lang={lang} />
-      )}
-
-      <div className="flex justify-center pt-1">
-        <Button onClick={onReset} variant="outline" className="gap-2">
-          <RotateCcw className="h-4 w-4" />
-          {t("startOver")}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function Tile({
-  tier,
-  count,
-  lang,
-  selected,
-  onClick,
-}: {
-  tier: Tier;
-  count: number;
-  lang: "en" | "gu";
-  selected: boolean;
-  onClick: () => void;
-}) {
-  const labels: Record<Tier, { en: string; gu: string }> = {
-    highly: { en: "Highly Auspicious", gu: "અત્યંત શુભ" },
-    auspicious: { en: "Auspicious", gu: "શુભ" },
-    good: { en: "Good", gu: "સારો" },
-    avoid: { en: "Avoid", gu: "ટાળો" },
-  };
-  // Color scheme: green=highly, yellow=auspicious, blue=good
-  const colors: Record<Tier, { base: string; selected: string; count: string }> = {
-    highly: {
-      base: "border-green-500/30 bg-green-500/5 text-green-700 dark:text-green-400",
-      selected: "border-green-500 bg-green-500/15 ring-2 ring-green-500/30 text-green-700 dark:text-green-400",
-      count: "text-green-600 dark:text-green-400",
-    },
-    auspicious: {
-      base: "border-yellow-500/30 bg-yellow-500/5 text-yellow-700 dark:text-yellow-400",
-      selected: "border-yellow-500 bg-yellow-500/15 ring-2 ring-yellow-500/30 text-yellow-700 dark:text-yellow-400",
-      count: "text-yellow-600 dark:text-yellow-400",
-    },
-    good: {
-      base: "border-blue-500/30 bg-blue-500/5 text-blue-700 dark:text-blue-400",
-      selected: "border-blue-500 bg-blue-500/15 ring-2 ring-blue-500/30 text-blue-700 dark:text-blue-400",
-      count: "text-blue-600 dark:text-blue-400",
-    },
-    avoid: {
-      base: "border-red-500/30 bg-red-500/5 text-red-700 dark:text-red-400",
-      selected: "border-red-500 bg-red-500/15 text-red-700 dark:text-red-400",
-      count: "text-red-600 dark:text-red-400",
-    },
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={count === 0}
-      className={cn(
-        "rounded-xl border p-2 transition-all text-center flex flex-col items-center justify-center min-h-[68px] h-full gap-0.5",
-        count === 0 && "opacity-35 cursor-not-allowed",
-        selected ? colors[tier].selected : colors[tier].base,
-        count > 0 && !selected && "hover:shadow-sm hover:-translate-y-0.5 cursor-pointer"
-      )}
-    >
-      {/* Tier label (centered vertically in fixed height box so 1-line and 2-line labels align) */}
-      <div className="flex items-center justify-center min-h-[26px] text-center w-full">
-        <span className="text-[10px] font-semibold uppercase tracking-wide leading-tight text-center">
-          {lang === "gu" ? labels[tier].gu : labels[tier].en}
-        </span>
-      </div>
-      {/* Count (smaller) */}
-      <span className={cn("text-lg font-bold leading-none", colors[tier].count)}>
-        {count}
-      </span>
-    </button>
-  );
-}
-
-function ResultGroup({
-  slots,
-  lang,
-}: {
-  slots: TimingResult[];
-  lang: "en" | "gu";
-}) {
-  // Group by date
-  const grouped = new Map<string, TimingResult[]>();
-  for (const r of slots) {
-    const key = formatTzDate(r.start, TZ_OFFSET, false);
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key)!.push(r);
-  }
-
-  return (
-    <div className="space-y-3">
-      {Array.from(grouped.entries()).map(([day, daySlots]) => (
-        <div key={day} className="space-y-2">
-          {/* Colored date heading */}
-          <div className="flex items-center gap-2 py-1 px-1 sticky top-0 bg-background/85 backdrop-blur z-10">
-            <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
-            <h4 className="text-sm font-bold text-primary">
-              {formatTzDate(daySlots[0].start, TZ_OFFSET)}
-            </h4>
-          </div>
-          {daySlots.map((s, i) => (
-            <Card
-              key={i}
-              className="p-2.5 transition-all fade-up border-border bg-card/80 space-y-1"
-              style={{ animationDelay: `${i * 30}ms` }}
-            >
-              {/* Time — reduced vertical margin to pills */}
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-extrabold text-sm sm:text-base text-foreground tracking-tight">
-                  {formatTzTime(s.start, TZ_OFFSET)} –{" "}
-                  {formatTzTime(s.end, TZ_OFFSET)}
+      {/* 3. Slot Cards List */}
+      <div className="space-y-2.5">
+        {displaySlots.map((slot, i) => (
+          <Card
+            key={i}
+            className="p-3.5 sm:p-4 rounded-3xl bg-card/90 dark:bg-card/75 backdrop-blur-xl border border-border/70 dark:border-white/10 shadow-sm space-y-2.5 hover:border-primary/50 transition-all"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 cosmic-pulse" />
+                <span className="font-extrabold text-sm sm:text-base text-foreground">
+                  {formatTzTime(slot.start, TZ_OFFSET)} – {formatTzTime(slot.end, TZ_OFFSET)}
                 </span>
               </div>
+              <span className="text-[11px] font-bold text-muted-foreground">
+                {formatTzDate(slot.start, TZ_OFFSET)}
+              </span>
+            </div>
 
-              {/* Classification chips: "Category: Value (Tier)" with value highlighted */}
-              <div className="flex flex-wrap gap-1">
-                <ClassChip
-                  label={lang === "gu" ? "ચોઘડિયા" : "Choghadiya"}
-                  value={s.classification.choghadiya ? (lang === "gu" ? s.classification.choghadiya.name_gu : s.classification.choghadiya.name_en) : null}
-                  tier={s.classification.choghadiya?.tier}
-                  lang={lang}
-                />
-                <ClassChip
-                  label={lang === "gu" ? "હોરા" : "Hora"}
-                  value={s.classification.hora ? (lang === "gu" ? s.classification.hora.name_gu : s.classification.hora.name_en) : null}
-                  tier={s.classification.hora?.tier}
-                  lang={lang}
-                />
-                <ClassChip
-                  label={lang === "gu" ? "તિથિ" : "Tithi"}
-                  value={s.classification.tithi ? (lang === "gu" ? s.classification.tithi.name_gu : s.classification.tithi.name_en) : null}
-                  tier={s.classification.tithi?.tier}
-                  lang={lang}
-                />
-                <ClassChip
-                  label={lang === "gu" ? "નક્ષત્ર" : "Nakshatra"}
-                  value={s.classification.nakshatra ? (lang === "gu" ? s.classification.nakshatra.name_gu : s.classification.nakshatra.name_en) : null}
-                  tier={s.classification.nakshatra?.tier}
-                  lang={lang}
-                />
-                <ClassChip
-                  label={lang === "gu" ? "યોગ" : "Yoga"}
-                  value={s.classification.yoga ? (lang === "gu" ? s.classification.yoga.name_gu : s.classification.yoga.name_en) : null}
-                  tier={s.classification.yoga?.tier}
-                  lang={lang}
-                />
-                <ClassChip
-                  label={lang === "gu" ? "વાર" : "Vara"}
-                  value={s.classification.vara ? (lang === "gu" ? s.classification.vara.name_gu : s.classification.vara.name_en) : null}
-                  tier={s.classification.vara?.tier}
-                  lang={lang}
-                />
-                <ClassChip
-                  label={lang === "gu" ? "મુહૂર્ત" : "Muhurat"}
-                  value={s.classification.muhurat ? (lang === "gu" ? s.classification.muhurat.name_gu : s.classification.muhurat.name_en) : null}
-                  tier={s.classification.muhurat?.tier}
-                  lang={lang}
-                  inactive={s.classification.muhurat ? !s.classification.muhurat.active : undefined}
-                />
-              </div>
-            </Card>
-          ))}
-        </div>
-      ))}
+            {/* Classification chips */}
+            <div className="flex flex-wrap gap-1.5">
+              <ClassChip
+                label={lang === "gu" ? "ચોઘડિયા" : "Choghadiya"}
+                value={slot.classification.choghadiya ? (lang === "gu" ? slot.classification.choghadiya.name_gu : slot.classification.choghadiya.name_en) : null}
+                tier={slot.classification.choghadiya?.tier}
+                lang={lang}
+              />
+              <ClassChip
+                label={lang === "gu" ? "હોરા" : "Hora"}
+                value={slot.classification.hora ? (lang === "gu" ? slot.classification.hora.name_gu : slot.classification.hora.name_en) : null}
+                tier={slot.classification.hora?.tier}
+                lang={lang}
+              />
+              <ClassChip
+                label={lang === "gu" ? "તિથિ" : "Tithi"}
+                value={slot.classification.tithi ? (lang === "gu" ? slot.classification.tithi.name_gu : slot.classification.tithi.name_en) : null}
+                tier={slot.classification.tithi?.tier}
+                lang={lang}
+              />
+              <ClassChip
+                label={lang === "gu" ? "નક્ષત્ર" : "Nakshatra"}
+                value={slot.classification.nakshatra ? (lang === "gu" ? slot.classification.nakshatra.name_gu : slot.classification.nakshatra.name_en) : null}
+                tier={slot.classification.nakshatra?.tier}
+                lang={lang}
+              />
+              <ClassChip
+                label={lang === "gu" ? "યોગ" : "Yoga"}
+                value={slot.classification.yoga ? (lang === "gu" ? slot.classification.yoga.name_gu : slot.classification.yoga.name_en) : null}
+                tier={slot.classification.yoga?.tier}
+                lang={lang}
+              />
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
 
-/** Classification chip: "Category: Value (Tier)" with the Value highlighted by tier color */
 function ClassChip({
   label,
   value,
   tier,
   lang,
-  inactive,
 }: {
   label: string;
   value: string | null;
   tier?: Tier;
   lang: "en" | "gu";
-  inactive?: boolean;
 }) {
-  if (!value || !tier || inactive) return null;
+  if (!value) return null;
 
-  const tierLabel =
-    lang === "gu"
-      ? { highly: "અત્યંત શુભ", auspicious: "શુભ", good: "સારો", avoid: "ટાળો" }[tier]
-      : { highly: "Highly Auspicious", auspicious: "Auspicious", good: "Good", avoid: "Avoid" }[tier];
-
-  // Value color by tier (green/yellow/blue/red)
-  const valueColor =
-    tier === "highly"
-      ? "text-green-600 dark:text-green-400 font-semibold"
-      : tier === "auspicious"
-      ? "text-yellow-600 dark:text-yellow-400 font-semibold"
+  const toneClass =
+    tier === "highly" || tier === "auspicious"
+      ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
       : tier === "good"
-      ? "text-blue-600 dark:text-blue-400 font-semibold"
-      : "text-red-600 dark:text-red-400 font-semibold";
+      ? "bg-amber-500/15 border-amber-500/30 text-amber-800 dark:text-amber-300"
+      : "bg-secondary/40 border-border/50 text-foreground";
 
   return (
-    <span className="inline-flex items-baseline gap-1 text-[10px] px-2 py-0.5 rounded-full bg-secondary/60 text-secondary-foreground border border-border/40">
-      <span className="text-muted-foreground font-medium">{label}:</span>
-      <span className={valueColor}>{value}</span>
-      <span className="text-[9px] opacity-75 font-normal">({tierLabel})</span>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border",
+        toneClass
+      )}
+    >
+      <span className="opacity-75">{label}:</span>
+      <span>{value}</span>
     </span>
   );
 }
